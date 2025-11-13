@@ -1019,6 +1019,16 @@ body {
         // const apiKeyHelp = document.getElementById('apiKeyHelp');
         const endConversationBtn = document.getElementById('endConversationBtn');
 
+        function SeriouslyStopListening(recognition)
+        {
+            if (navigator.vendor.indexOf('Apple') > -1)
+            {
+                try{ recognition.start(); }
+                catch(err) { }
+            }
+            recognition.stop();
+        }
+
         // Initialize Speech Recognition
         function initSpeechRecognition() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -1060,6 +1070,10 @@ body {
                     }, 3000);
                 };
                 
+                recognition.onspeechend = () => {
+                    SeriouslyStopListening(recognition);
+                };
+
                 recognition.onend = () => {
                     isListening = false;
                     micBtn.classList.remove('active', 'listening');
