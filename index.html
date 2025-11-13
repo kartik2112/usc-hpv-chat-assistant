@@ -983,6 +983,7 @@ body {
         let wasVoiceInput = false; // NEW: Track if current question was via voice
         let currentUtterance = null; // NEW: Track current TTS utterance
         let isSpeaking = false; // NEW: Track if TTS is active
+        let currentAudioContext = null; // Track current audio playback for OpenAI TTS
 
         // OpenAI Configuration with NEW SYSTEM PROMPT
         const OPENAI_CONFIG = {
@@ -1112,58 +1113,171 @@ body {
         }
 
         // NEW: Text-to-Speech Function
+        // function speakText(text) {
+        //     // Stop any ongoing speech
+        //     if (isSpeaking) {
+        //         window.speechSynthesis.cancel();
+        //     }
+            
+        //     // Create new utterance
+        //     currentUtterance = new SpeechSynthesisUtterance(text);
+            
+        //     // Set language based on current selection
+        //     currentUtterance.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+        //     currentUtterance.rate = 1.0;
+        //     currentUtterance.pitch = 1.0;
+        //     currentUtterance.volume = 1.0;
+            
+        //     // Get voices and set appropriate one
+        //     const voices = window.speechSynthesis.getVoices();
+        //     const targetLang = currentLang === 'en' ? 'en' : 'es';
+        //     const voice = voices.find(v => v.lang.startsWith(targetLang));
+        //     if (voice) {
+        //         currentUtterance.voice = voice;
+        //     }
+            
+        //     // Event handlers
+        //     currentUtterance.onstart = () => {
+        //         isSpeaking = true;
+        //         showSpeakingIndicator();
+        //     };
+            
+        //     currentUtterance.onend = () => {
+        //         isSpeaking = false;
+        //         hideSpeakingIndicator();
+        //     };
+            
+        //     currentUtterance.onerror = (event) => {
+        //         console.error('TTS error:', event);
+        //         isSpeaking = false;
+        //         hideSpeakingIndicator();
+        //     };
+            
+        //     // Speak
+        //     window.speechSynthesis.speak(currentUtterance);
+        // }
+
         function speakText(text) {
             // Stop any ongoing speech
             if (isSpeaking) {
-                window.speechSynthesis.cancel();
+                stopSpeaking();
             }
             
-            // Create new utterance
-            currentUtterance = new SpeechSynthesisUtterance(text);
+            // Call OpenAI TTS API through backend
+            isSpeaking = true;
+            showSpeakingIndicator();
             
-            // Set language based on current selection
-            currentUtterance.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
-            currentUtterance.rate = 1.0;
-            currentUtterance.pitch = 1.0;
-            currentUtterance.volume = 1.0;
+            const voiceOption = currentLang === 'en' ? 'echo' : 'onyx';
             
-            // Get voices and set appropriate one
-            const voices = window.speechSynthesis.getVoices();
-            const targetLang = currentLang === 'en' ? 'en' : 'es';
-            const voice = voices.find(v => v.lang.startsWith(targetLang));
-            if (voice) {
-                currentUtterance.voice = voice;
-            }
-            
-            // Event handlers
-            currentUtterance.onstart = () => {
-                isSpeaking = true;
-                showSpeakingIndicator();
-            };
-            
-            currentUtterance.onend = () => {
+            fetch('https://usc-hpv-chat-assistant-backend.onrender.com/api/tts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    language: currentLang,
+                    voice: voiceOption
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                // Use arrayBuffer instead of blob for better compatibility
+                return response.arrayBuffer();
+            })
+            .then(arrayBuffer => {
+                // Stop any current playback
+                if (currentAudioContext) {
+                    currentAudioContext.pause();
+                    currentAudioContext.currentTime = 0;
+                    currentAudioContext = null;
+                }
+                
+                // Create blob from arrayBuffer with explicit audio/mpeg type
+                const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                // Create audio element with proper attributes
+                currentAudioContext = new Audio();
+                currentAudioContext.crossOrigin = 'anonymous';  // IMPORTANT!
+                currentAudioContext.src = audioUrl;
+                
+                // Set up event listeners BEFORE calling play()
+                currentAudioContext.addEventListener('play', () => {
+                    isSpeaking = true;
+                    showSpeakingIndicator();
+                }, { once: true });
+                
+                currentAudioContext.addEventListener('ended', () => {
+                    isSpeaking = false;
+                    hideSpeakingIndicator();
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudioContext = null;
+                }, { once: true });
+                
+                currentAudioContext.addEventListener('error', (event) => {
+                    // Better error logging
+                    console.error('Audio playback error details:');
+                    console.error('Error code:', currentAudioContext.error?.code);
+                    console.error('Error message:', currentAudioContext.error?.message);
+                    console.error('MIME Type set:', audioBlob.type);
+                    console.error('Event:', event);
+                    
+                    isSpeaking = false;
+                    hideSpeakingIndicator();
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudioContext = null;
+                }, { once: true });
+                
+                currentAudioContext.addEventListener('abort', () => {
+                    console.log('Audio playback aborted');
+                    isSpeaking = false;
+                    hideSpeakingIndicator();
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudioContext = null;
+                }, { once: true });
+                
+                // Play audio
+                currentAudioContext.play().catch(error => {
+                    console.error('Failed to play audio:', error);
+                    isSpeaking = false;
+                    hideSpeakingIndicator();
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudioContext = null;
+                });
+            })
+            .catch(error => {
+                console.error('TTS API error:', error);
                 isSpeaking = false;
                 hideSpeakingIndicator();
-            };
-            
-            currentUtterance.onerror = (event) => {
-                console.error('TTS error:', event);
-                isSpeaking = false;
-                hideSpeakingIndicator();
-            };
-            
-            // Speak
-            window.speechSynthesis.speak(currentUtterance);
+            });
         }
+
+
         
         // NEW: Stop speaking
+        // function stopSpeaking() {
+        //     if (isSpeaking) {
+        //         window.speechSynthesis.cancel();
+        //         isSpeaking = false;
+        //         hideSpeakingIndicator();
+        //     }
+        // }
+
         function stopSpeaking() {
             if (isSpeaking) {
-                window.speechSynthesis.cancel();
+                // Stop current audio playback
+                if (currentAudioContext) {
+                    currentAudioContext.pause();
+                    currentAudioContext.currentTime = 0;
+                }
                 isSpeaking = false;
                 hideSpeakingIndicator();
             }
         }
+
         
         // NEW: Show speaking indicator
         function showSpeakingIndicator() {
@@ -1679,12 +1793,13 @@ body {
             renderStarterQuestions();
             
             // Load voices for TTS
-            if ('speechSynthesis' in window) {
-                // Load voices
-                window.speechSynthesis.onvoiceschanged = () => {
-                    window.speechSynthesis.getVoices();
-                };
-            }
+            // if ('speechSynthesis' in window) {
+            //     // Load voices
+            //     window.speechSynthesis.onvoiceschanged = () => {
+            //         window.speechSynthesis.getVoices();
+            //     };
+            // }
+            // OpenAI TTS is used instead of browser speechSynthesis
         }
         init();
         window.addEventListener('load', () => {
