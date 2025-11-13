@@ -1224,16 +1224,17 @@ body {
             addUserMessage(question);
             
             // For typed questions, always call OpenAI (no similarity matching)
-            if (apiKey) {
-                await callOpenAI(question);
-            } else {
-                const noKeyMsg = translations[currentLang].noApiKey;
-                addAssistantMessage(noKeyMsg, []);
-                if (wasVoiceInput) {
-                    speakText(noKeyMsg);
-                    wasVoiceInput = false;
-                }
-            }
+            // if (apiKey) {
+            await callOpenAI(question);
+            // } 
+            // else {
+            //     const noKeyMsg = translations[currentLang].noApiKey;
+            //     addAssistantMessage(noKeyMsg, []);
+            //     if (wasVoiceInput) {
+            //         speakText(noKeyMsg);
+            //         wasVoiceInput = false;
+            //     }
+            // }
             hideEmptyState();
         }
 
@@ -1485,7 +1486,8 @@ body {
                 }
                 
                 const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
+                // const aiResponse = data.choices[0].message.content;
+                const aiResponse = data.message;
                 
                 // Add to chat history
                 chatHistory.push({ role: 'assistant', content: aiResponse });
@@ -1635,13 +1637,13 @@ body {
             }
         });
         
-        settingsBtn.addEventListener('click', () => {
-            settingsPanel.classList.toggle('hidden');
-        });
+        // settingsBtn.addEventListener('click', () => {
+        //     settingsPanel.classList.toggle('hidden');
+        // });
         
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsPanel.classList.add('hidden');
-        });
+        // closeSettingsBtn.addEventListener('click', () => {
+        //     settingsPanel.classList.add('hidden');
+        // });
         
         saveApiKeyBtn.addEventListener('click', saveApiKey);
         
