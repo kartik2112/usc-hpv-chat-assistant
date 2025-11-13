@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HPV Health Assistant</title>
+    <style>
+        /* Design System */
+        :root {
+  --color-white: rgba(255, 255, 255, 1);
+  --color-black: rgba(0, 0, 0, 1);
+  --color-cream-50: rgba(252, 252, 249, 1);
+  --color-cream-100: rgba(255, 255, 253, 1);
+  --color-gray-200: rgba(245, 245, 245, 1);
+  --color-gray-300: rgba(167, 169, 169, 1);
+  --color-gray-400: rgba(119, 124, 124, 1);
+  --color-slate-500: rgba(98, 108, 113, 1);
+  --color-brown-600: rgba(94, 82, 64, 1);
+  --color-charcoal-700: rgba(31, 33, 33, 1);
+  --color-charcoal-800: rgba(38, 40, 40, 1);
+  --color-slate-900: rgba(19, 52, 59, 1);
+  --color-teal-300: rgba(50, 184, 198, 1);
+  --color-teal-400: rgba(45, 166, 178, 1);
+  --color-teal-500: rgba(33, 128, 141, 1);
+  --color-teal-600: rgba(29, 116, 128, 1);
+  --color-teal-700: rgba(26, 104, 115, 1);
+  --color-teal-800: rgba(41, 150, 161, 1);
+  --color-red-400: rgba(255, 84, 89, 1);
+  --color-red-500: rgba(192, 21, 47, 1);
+  --color-orange-400: rgba(230, 129, 97, 1);
+  --color-orange-500: rgba(168, 75, 47, 1);
+  --color-brown-600-rgb: 94, 82, 64;
+  --color-teal-500-rgb: 33, 128, 141;
+  --color-slate-900-rgb: 19, 52, 59;
+  --color-slate-500-rgb: 98, 108, 113;
+  --color-red-500-rgb: 192, 21, 47;
+  --color-red-400-rgb: 255, 84, 89;
+  --color-orange-500-rgb: 168, 75, 47;
+  --color-orange-400-rgb: 230, 129, 97;
+  --color-bg-1: rgba(59, 130, 246, 0.08);
+  --color-bg-2: rgba(245, 158, 11, 0.08);
+  --color-bg-3: rgba(34, 197, 94, 0.08);
+  --color-bg-4: rgba(239, 68, 68, 0.08);
+  --color-bg-5: rgba(147, 51, 234, 0.08);
+  --color-bg-6: rgba(249, 115, 22, 0.08);
+  --color-bg-7: rgba(236, 72, 153, 0.08);
+  --color-bg-8: rgba(6, 182, 212, 0.08);
+  --color-background: var(--color-cream-50);
+  --color-surface: var(--color-cream-100);
+  --color-text: var(--color-slate-900);
+  --color-text-secondary: var(--color-slate-500);
+  --color-primary: var(--color-teal-500);
+  --color-primary-hover: var(--color-teal-600);
+  --color-primary-active: var(--color-teal-700);
+  --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+  --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+  --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+  --color-btn-primary-text: var(--color-cream-50);
+  --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-error: var(--color-red-500);
+  --color-success: var(--color-teal-500);
+  --color-warning: var(--color-orange-500);
+  --color-info: var(--color-slate-500);
+  --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+  --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
+  --focus-ring: 0 0 0 3px var(--color-focus-ring);
+  --focus-outline: 2px solid var(--color-primary);
+  --status-bg-opacity: 0.15;
+  --status-border-opacity: 0.25;
+  --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 30px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 550;
+  --font-weight-bold: 600;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --letter-spacing-tight: -0.01em;
+  --space-0: 0;
+  --space-1: 1px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --radius-sm: 6px;
+  --radius-base: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-gray-400-rgb: 119, 124, 124;
+    --color-teal-300-rgb: 50, 184, 198;
+    --color-gray-300-rgb: 167, 169, 169;
+    --color-gray-200-rgb: 245, 245, 245;
+    --color-bg-1: rgba(29, 78, 216, 0.15);
+    --color-bg-2: rgba(180, 83, 9, 0.15);
+    --color-bg-3: rgba(21, 128, 61, 0.15);
+    --color-bg-4: rgba(185, 28, 28, 0.15);
+    --color-bg-5: rgba(107, 33, 168, 0.15);
+    --color-bg-6: rgba(194, 65, 12, 0.15);
+    --color-bg-7: rgba(190, 24, 93, 0.15);
+    --color-bg-8: rgba(8, 145, 178, 0.15);
+    --color-background: var(--color-charcoal-700);
+    --color-surface: var(--color-charcoal-800);
+    --color-text: var(--color-gray-200);
+    --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+    --color-primary: var(--color-teal-300);
+    --color-primary-hover: var(--color-teal-400);
+    --color-primary-active: var(--color-teal-800);
+    --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+    --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+    --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+    --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+    --color-error: var(--color-red-400);
+    --color-success: var(--color-teal-300);
+    --color-warning: var(--color-orange-400);
+    --color-info: var(--color-gray-300);
+    --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+    --color-btn-primary-text: var(--color-slate-900);
+    --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+    --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+    --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
+  }
+}
+
+@font-face {
+  font-family: 'FKGroteskNeue';
+  src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: var(--line-height-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Styles */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-card-border);
+  padding: var(--space-20) var(--space-24);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.header-text {
+  flex: 1;
+}
+
+.header-title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.header-subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--space-12);
+}
+
+.btn {
+  padding: var(--space-10) var(--space-16);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  font-family: var(--font-family-base);
+}
+
+.btn:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.btn:active {
+  background-color: var(--color-secondary-active);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-primary:active {
+  background-color: var(--color-primary-active);
+}
+
+/* Main Chat Area */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-24);
+  overflow-y: auto;
+}
+
+.messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
+}
+
+.message {
+  display: flex;
+  gap: var(--space-12);
+  max-width: 85%;
+}
+
+.message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-content {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.message.user .message-content {
+  background-color: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border-color: var(--color-primary);
+}
+
+.message-text {
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.followup-questions {
+  margin-top: var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.followup-btn {
+  padding: var(--space-10) var(--space-16);
+  background-color: var(--color-bg-3);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  text-align: left;
+  font-family: var(--font-family-base);
+}
+
+.followup-btn:hover {
+  background-color: var(--color-secondary-hover);
+  transform: translateX(4px);
+}
+
+/* Starter Questions */
+.starter-questions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
+}
+
+.starter-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-standard);
+  box-shadow: var(--shadow-sm);
+}
+
+.starter-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.starter-card-text {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+/* Input Area */
+.input-container {
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-card-border);
+  padding: var(--space-20) var(--space-24);
+  position: sticky;
+  bottom: 0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.input-wrapper {
+  display: flex;
+  gap: var(--space-12);
+  align-items: center;
+}
+
+.input-field {
+  flex: 1;
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.input-field::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.icon-btn:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.icon-btn.active {
+  background-color: var(--color-error);
+  color: white;
+  border-color: var(--color-error);
+}
+
+.icon-btn.listening {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.send-btn {
+  width: auto;
+  padding: var(--space-12) var(--space-20);
+}
+
+/* Footer */
+.footer {
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-card-border);
+  padding: var(--space-16) var(--space-24);
+  text-align: center;
+}
+
+.disclaimer {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: var(--space-32) var(--space-16);
+}
+
+.empty-state-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-12);
+}
+
+.empty-state-subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-32);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-title {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .header-subtitle {
+    font-size: var(--font-size-sm);
+  }
+  
+  .starter-questions {
+    grid-template-columns: 1fr;
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+  
+  .chat-container {
+    padding: var(--space-16);
+  }
+  
+  .input-container {
+    padding: var(--space-16);
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Settings Panel */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  max-width: 90vw;
+  height: 100vh;
+  background-color: var(--color-surface);
+  border-left: 1px solid var(--color-card-border);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  overflow-y: auto;
+  transition: transform var(--duration-normal) var(--ease-standard);
+}
+
+.settings-panel.hidden {
+  transform: translateX(100%);
+}
+
+.settings-content {
+  padding: var(--space-24);
+}
+
+.settings-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-24);
+  color: var(--color-text);
+}
+
+.form-group {
+  margin-bottom: var(--space-20);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--space-8);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.form-control {
+  width: 100%;
+  padding: var(--space-10) var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.help-text {
+  margin-top: var(--space-6);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.settings-actions {
+  display: flex;
+  gap: var(--space-12);
+  margin-top: var(--space-24);
+}
+
+.api-key-status {
+  margin-top: var(--space-16);
+  padding: var(--space-12);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+}
+
+.api-key-status.success {
+  background-color: rgba(var(--color-success-rgb), 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(var(--color-success-rgb), 0.25);
+}
+
+.api-key-status.error {
+  background-color: rgba(var(--color-error-rgb), 0.15);
+  color: var(--color-error);
+  border: 1px solid rgba(var(--color-error-rgb), 0.25);
+}
+
+/* Loading Indicator */
+.typing-indicator {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-12);
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-text-secondary);
+  animation: typing 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Icon SVGs embedded */
+.mic-icon::before {
+  content: '🎤';
+  font-size: 20px;
+}
+
+.send-icon::before {
+  content: '➤';
+  font-size: 18px;
+}
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Settings Panel -->
+        <div id="settingsPanel" class="settings-panel hidden">
+            <div class="settings-content">
+                <h3 class="settings-title" id="settingsTitle">API Settings</h3>
+                <div class="form-group">
+                    <label class="form-label" id="apiKeyLabel">OpenAI API Key</label>
+                    <input type="password" class="form-control" id="apiKeyInput" placeholder="sk-..." />
+                    <p class="help-text" id="apiKeyHelp">Enter your OpenAI API key to answer custom questions</p>
+                </div>
+                <div class="settings-actions">
+                    <button class="btn btn-primary" id="saveApiKeyBtn">Save Key</button>
+                    <button class="btn" id="closeSettingsBtn">Close</button>
+                </div>
+                <div id="apiKeyStatus" class="api-key-status hidden"></div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-text">
+                    <h1 class="header-title" id="headerTitle">HPV Health Assistant</h1>
+                    <p class="header-subtitle" id="headerSubtitle">Get reliable information about HPV and cervical health</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn" id="settingsBtn" title="Settings">⚙️</button>
+                    <button class="btn" id="endConversationBtn">End Conversation</button>
+                    <button class="btn" id="startOverBtn">Start Over</button>
+                    <button class="btn btn-primary" id="langToggle">Español</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Chat Area -->
+        <main class="chat-container">
+            <div id="emptyState" class="empty-state">
+                <h2 class="empty-state-title" id="emptyTitle">Welcome! I can answer any question you have about HPV!</h2>
+                <p class="empty-state-subtitle" id="emptySubtitle">Select a question below or type or speak your own question</p>
+            </div>
+            
+            <div id="starterQuestions" class="starter-questions"></div>
+            
+            <div id="messages" class="messages"></div>
+        </main>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    class="input-field" 
+                    id="userInput" 
+                    placeholder="Type your question here..."
+                />
+                <button class="icon-btn" id="micBtn" title="Voice input">
+                    <span class="mic-icon"></span>
+                </button>
+                <button class="icon-btn send-btn btn-primary" id="sendBtn" title="Send message">
+                    <span class="send-icon"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="disclaimer" id="disclaimer">
+                This information is for educational purposes only and does not replace professional medical advice. 
+                Please consult with a healthcare provider for personalized guidance.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // NEW: Initial Suggestions Data Structure with BILINGUAL support
+        const initialSuggestions = [
+            {
+                title: {
+                    en: "What is HPV?",
+                    es: "¿Qué es el VPH?"
+                },
+                action: {
+                    en: "What is HPV?",
+                    es: "¿Qué es el VPH?"
+                },
+                defaultAnswer: {
+                    en: "HPV (Human Papillomavirus) is a group of related viruses, some of which can cause warts or lead to certain cancers.",
+                    es: "El VPH (Virus del Papiloma Humano) es un grupo de virus relacionados, algunos de los cuales pueden causar verrugas o provocar ciertos cánceres."
+                },
+                followups: {
+                    en: [
+                        { title: "How common is HPV?", action: "How common is HPV?", defaultAnswer: "HPV is very common — most sexually active people will get it at some point in their lives." },
+                        { title: "How is it passed from one person to another?", action: "How is it passed from one person to another?", defaultAnswer: "HPV is usually transmitted through intimate skin-to-skin contact, often during sexual activity." },
+                        { title: "What are symptoms of HPV infection?", action: "What are symptoms of HPV infection?", defaultAnswer: "Many HPV infections have no symptoms; some cause warts, while high-risk types can lead to precancerous changes over time." },
+                        { title: "Can HPV infections be treated?", action: "Can HPV infections be treated?", defaultAnswer: "There is no cure for the virus itself, but many HPV-related conditions (like warts or precancerous lesions) can be treated." }
+                    ],
+                    es: [
+                        { title: "¿Qué tan común es el VPH?", action: "¿Qué tan común es el VPH?", defaultAnswer: "El VPH es muy común: la mayoría de las personas sexualmente activas lo contraerán en algún momento de sus vidas." },
+                        { title: "¿Cómo se transmite de una persona a otra?", action: "¿Cómo se transmite de una persona a otra?", defaultAnswer: "El VPH generalmente se transmite a través del contacto íntimo piel con piel, a menudo durante la actividad sexual." },
+                        { title: "¿Cuáles son los síntomas de la infección por VPH?", action: "¿Cuáles son los síntomas de la infección por VPH?", defaultAnswer: "Muchas infecciones por VPH no tienen síntomas; algunas causan verrugas, mientras que los tipos de alto riesgo pueden provocar cambios precancerosos con el tiempo." },
+                        { title: "¿Se pueden tratar las infecciones por VPH?", action: "¿Se pueden tratar las infecciones por VPH?", defaultAnswer: "No existe cura para el virus en sí, pero muchas afecciones relacionadas con el VPH (como verrugas o lesiones precancerosas) pueden tratarse." }
+                    ]
+                }
+            },
+            {
+                title: {
+                    en: "How can I protect against HPV?",
+                    es: "¿Cómo puedo protegerme contra el VPH?"
+                },
+                action: {
+                    en: "How can I protect against HPV?",
+                    es: "¿Cómo puedo protegerme contra el VPH?"
+                },
+                defaultAnswer: {
+                    en: "HPV infection can be reduced by vaccination, practicing safe sex, and regular health screenings.",
+                    es: "La infección por VPH se puede reducir mediante la vacunación, practicando sexo seguro y exámenes de salud regulares."
+                },
+                followups: {
+                    en: [
+                        { title: "Is the HPV vaccine safe?", action: "Is the HPV vaccine safe?", defaultAnswer: "Yes — large studies show the HPV vaccine is safe for recommended age groups." },
+                        { title: "Is the HPV vaccine effective?", action: "Is the HPV vaccine effective?", defaultAnswer: "The vaccine is highly effective at preventing infection by the HPV types it targets, especially when given before exposure." },
+                        { title: "When should people get the HPV vaccine?", action: "When should people get the HPV vaccine?", defaultAnswer: "It's recommended for preteens (ages 11–12) though catch-up vaccination is available for older individuals up to certain ages." },
+                        { title: "What are the side effects of the HPV vaccine?", action: "What are the side effects of the HPV vaccine?", defaultAnswer: "Side effects are usually mild — soreness at the injection site, low-grade fever, or headache are common." }
+                    ],
+                    es: [
+                        { title: "¿Es segura la vacuna contra el VPH?", action: "¿Es segura la vacuna contra el VPH?", defaultAnswer: "Sí, grandes estudios demuestran que la vacuna contra el VPH es segura para los grupos de edad recomendados." },
+                        { title: "¿Es efectiva la vacuna contra el VPH?", action: "¿Es efectiva la vacuna contra el VPH?", defaultAnswer: "La vacuna es muy efectiva para prevenir la infección por los tipos de VPH a los que se dirige, especialmente cuando se administra antes de la exposición." },
+                        { title: "¿Cuándo deben las personas recibir la vacuna contra el VPH?", action: "¿Cuándo deben las personas recibir la vacuna contra el VPH?", defaultAnswer: "Se recomienda para preadolescentes (edades 11-12) aunque la vacunación de recuperación está disponible para personas mayores hasta ciertas edades." },
+                        { title: "¿Cuáles son los efectos secundarios de la vacuna contra el VPH?", action: "¿Cuáles son los efectos secundarios de la vacuna contra el VPH?", defaultAnswer: "Los efectos secundarios suelen ser leves: dolor en el lugar de la inyección, fiebre baja o dolor de cabeza son comunes." }
+                    ]
+                }
+            },
+            {
+                title: {
+                    en: "Why should I be worried about HPV?",
+                    es: "¿Por qué debería preocuparme por el VPH?"
+                },
+                action: {
+                    en: "Why should I be worried about HPV?",
+                    es: "¿Por qué debería preocuparme por el VPH?"
+                },
+                defaultAnswer: {
+                    en: "HPV is a common sexually transmitted infection that can lead to serious health issues, including certain cancers.",
+                    es: "El VPH es una infección de transmisión sexual común que puede provocar problemas de salud graves, incluidos ciertos cánceres."
+                },
+                followups: {
+                    en: [
+                        { title: "When can HPV infection cause cancer?", action: "When can HPV infection cause cancer?", defaultAnswer: "Persistent infection with high-risk HPV types over many years can lead to cellular changes and, rarely, cancer." },
+                        { title: "How long does cervical cancer take to develop?", action: "How long does cervical cancer take to develop?", defaultAnswer: "It can take several years to many decades; regular screening detects precancerous changes early." },
+                        { title: "Can I get the HPV vaccine if I've already had an infection or cancer?", action: "Can I get the HPV vaccine if I've already had an infection or cancer?", defaultAnswer: "You can still benefit from the vaccine even if you've had an HPV infection, but consult a clinician if you have a history of HPV-related cancer." }
+                    ],
+                    es: [
+                        { title: "¿Cuándo puede la infección por VPH causar cáncer?", action: "¿Cuándo puede la infección por VPH causar cáncer?", defaultAnswer: "La infección persistente con tipos de VPH de alto riesgo durante muchos años puede provocar cambios celulares y, en raras ocasiones, cáncer." },
+                        { title: "¿Cuánto tiempo tarda en desarrollarse el cáncer de cuello uterino?", action: "¿Cuánto tiempo tarda en desarrollarse el cáncer de cuello uterino?", defaultAnswer: "Puede tomar varios años o muchas décadas; la detección regular detecta cambios precancerosos temprano." },
+                        { title: "¿Puedo recibir la vacuna contra el VPH si ya he tenido una infección o cáncer?", action: "¿Puedo recibir la vacuna contra el VPH si ya he tenido una infección o cáncer?", defaultAnswer: "Aún puede beneficiarse de la vacuna incluso si ha tenido una infección por VPH, pero consulte a un médico si tiene antecedentes de cáncer relacionado con el VPH." }
+                    ]
+                }
+            },
+            {
+                title: {
+                    en: "Do I still need Pap smears if I had the HPV vaccine?",
+                    es: "¿Todavía necesito pruebas de Papanicolaou si me vacuné contra el VPH?"
+                },
+                action: {
+                    en: "Do I still need Pap smears if I had the HPV vaccine?",
+                    es: "¿Todavía necesito pruebas de Papanicolaou si me vacuné contra el VPH?"
+                },
+                defaultAnswer: {
+                    en: "Yes, even if you have had the HPV vaccine, regular Pap smears are still recommended to screen for cervical cancer.",
+                    es: "Sí, incluso si se ha vacunado contra el VPH, aún se recomiendan las pruebas de Papanicolaou regulares para detectar el cáncer de cuello uterino."
+                },
+                followups: {
+                    en: [
+                        { title: "How do we screen/check for cervical cancer?", action: "How do we screen/check for cervical cancer?", defaultAnswer: "Cervical cancer screening typically uses Pap smears and/or HPV testing to find precancerous changes early." },
+                        { title: "When should I be tested for HPV?", action: "When should I be tested for HPV?", defaultAnswer: "Follow national screening guidelines; often testing starts in young adulthood or as recommended by clinicians." }
+                    ],
+                    es: [
+                        { title: "¿Cómo se detecta o examina el cáncer de cuello uterino?", action: "¿Cómo se detecta o examina el cáncer de cuello uterino?", defaultAnswer: "La detección del cáncer de cuello uterino generalmente utiliza pruebas de Papanicolaou y/o pruebas de VPH para encontrar cambios precancerosos temprano." },
+                        { title: "¿Cuándo debo hacerme la prueba del VPH?", action: "¿Cuándo debo hacerme la prueba del VPH?", defaultAnswer: "Siga las pautas nacionales de detección; a menudo las pruebas comienzan en la edad adulta joven o según lo recomienden los médicos." }
+                    ]
+                }
+            }
+        ];
+
+        // Knowledge Base (kept for legacy support)
+        const knowledgeBase = {
+            q1: {
+                id: 'q1',
+                en: 'What is HPV?',
+                es: '¿Qué es el VPH?',
+                answer_en: 'HPV (Human Papillomavirus) is a very common group of viruses with over 200 types. It\'s the most common sexually transmitted infection. Many HPV infections cause no symptoms and resolve on their own within two years. However, some high-risk types can persist and lead to serious health problems including cervical, throat, anal, penile, vaginal, and vulvar cancers. HPV types 16 and 18 are responsible for about 70% of cervical cancers.',
+                answer_es: 'El VPH (Virus del Papiloma Humano) es un grupo muy común de virus con más de 200 tipos. Es la infección de transmisión sexual más común. Muchas infecciones por VPH no causan síntomas y se resuelven por sí solas en dos años. Sin embargo, algunos tipos de alto riesgo pueden persistir y provocar problemas de salud graves, incluidos los cánceres de cuello uterino, garganta, anal, pene, vaginal y vulvar. Los tipos 16 y 18 del VPH son responsables de aproximadamente el 70% de los cánceres de cuello uterino.',
+                followups_en: ['What are the symptoms of HPV?', 'How is HPV transmitted?', 'Can HPV be cured?', 'What are high-risk HPV types?'],
+                followups_es: ['¿Cuáles son los síntomas del VPH?', '¿Cómo se transmite el VPH?', '¿Se puede curar el VPH?', '¿Cuáles son los tipos de VPH de alto riesgo?']
+            },
+            q2: {
+                id: 'q2',
+                en: 'How can I protect against HPV?',
+                es: '¿Cómo puedo protegerme contra el VPH?',
+                answer_en: 'Protection against HPV involves several strategies: 1) HPV Vaccination - The most effective prevention method, recommended for ages 9-45, ideally before sexual activity begins. 2) Safe Sex Practices - Consistent condom use can reduce but not eliminate transmission risk since HPV spreads through skin-to-skin contact. 3) Regular Screening - Pap smears and HPV tests can detect precancerous changes early. 4) Limiting Sexual Partners - Fewer partners reduces exposure risk. The HPV vaccine (Gardasil 9) protects against 7 cancer-causing types and 2 types that cause genital warts.',
+                answer_es: 'La protección contra el VPH implica varias estrategias: 1) Vacunación contra el VPH: el método de prevención más eficaz, recomendado para edades de 9 a 45 años, idealmente antes de que comience la actividad sexual. 2) Prácticas sexuales seguras: el uso constante de condones puede reducir, pero no eliminar, el riesgo de transmisión, ya que el VPH se propaga a través del contacto piel con piel. 3) Exámenes regulares: las pruebas de Papanicolaou y VPH pueden detectar cambios precancerosos temprano. 4) Limitar las parejas sexuales: menos parejas reduce el riesgo de exposición. La vacuna contra el VPH (Gardasil 9) protege contra 7 tipos que causan cáncer y 2 tipos que causan verrugas genitales.',
+                followups_en: ['What is the HPV vaccine?', 'How effective are condoms against HPV?', 'When should I get vaccinated?', 'Is the HPV vaccine safe?'],
+                followups_es: ['¿Qué es la vacuna contra el VPH?', '¿Qué tan efectivos son los condones contra el VPH?', '¿Cuándo debo vacunarme?', '¿Es segura la vacuna contra el VPH?']
+            },
+            q3: {
+                id: 'q3',
+                en: 'Why should I be worried about HPV?',
+                es: '¿Por qué debería preocuparme por el VPH?',
+                answer_en: 'While most HPV infections clear on their own, persistent high-risk HPV infections can lead to serious complications: 1) Cancer Risk - HPV causes virtually all cervical cancers, over 90% of anal cancers, and significant portions of throat, vaginal, vulvar, and penile cancers. Globally, HPV caused an estimated 620,000 cancer cases in women and 70,000 in men in 2019. 2) Genital Warts - Low-risk HPV types 6 and 11 cause 90% of genital warts. 3) Long Development Time - It can take 15-20 years for HPV to develop into cancer, but early detection through screening can prevent this progression. The good news is that vaccination and regular screening make HPV-related cancers largely preventable.',
+                answer_es: 'Si bien la mayoría de las infecciones por VPH desaparecen por sí solas, las infecciones persistentes por VPH de alto riesgo pueden provocar complicaciones graves: 1) Riesgo de cáncer: el VPH causa prácticamente todos los cánceres de cuello uterino, más del 90% de los cánceres anales y porciones significativas de los cánceres de garganta, vagina, vulva y pene. A nivel mundial, el VPH causó aproximadamente 620,000 casos de cáncer en mujeres y 70,000 en hombres en 2019. 2) Verrugas genitales: los tipos de VPH de bajo riesgo 6 y 11 causan el 90% de las verrugas genitales. 3) Tiempo de desarrollo prolongado: el VPH puede tardar entre 15 y 20 años en convertirse en cáncer, pero la detección temprana mediante exámenes puede prevenir esta progresión. La buena noticia es que la vacunación y los exámenes regulares hacen que los cánceres relacionados con el VPH sean en gran medida prevenibles.',
+                followups_en: ['What cancers are caused by HPV?', 'How long does it take for HPV to cause cancer?', 'Can men get HPV-related cancers?', 'How common is cervical cancer?'],
+                followups_es: ['¿Qué cánceres son causados por el VPH?', '¿Cuánto tiempo tarda el VPH en causar cáncer?', '¿Pueden los hombres contraer cánceres relacionados con el VPH?', '¿Qué tan común es el cáncer de cuello uterino?']
+            },
+            q4: {
+                id: 'q4',
+                en: 'Do I still need Pap smears if I have had the HPV vaccine?',
+                es: '¿Todavía necesito pruebas de Papanicolaou si me he puesto la vacuna contra el VPH?',
+                answer_en: 'Yes, you absolutely still need regular Pap smears even after HPV vaccination. Here\'s why: 1) The vaccine doesn\'t protect against ALL HPV types - Gardasil 9 protects against 9 types, but there are over 200 types of HPV. 2) No vaccine is 100% effective - A small percentage of vaccinated individuals may still develop infections. 3) The vaccine doesn\'t treat existing infections - If you were exposed before vaccination, the vaccine won\'t clear that infection. Screening recommendations remain the same regardless of vaccination status: Ages 21-29: Pap test every 3 years; Ages 30-65: Either Pap test every 3 years, HPV test every 5 years, or both together (co-testing) every 5 years. Regular screening combined with vaccination provides the best protection against cervical cancer.',
+                answer_es: 'Sí, todavía necesita pruebas de Papanicolaou regulares incluso después de la vacunación contra el VPH. He aquí por qué: 1) La vacuna no protege contra TODOS los tipos de VPH: Gardasil 9 protege contra 9 tipos, pero hay más de 200 tipos de VPH. 2) Ninguna vacuna es 100% efectiva: un pequeño porcentaje de personas vacunadas aún pueden desarrollar infecciones. 3) La vacuna no trata las infecciones existentes: si estuvo expuesto antes de la vacunación, la vacuna no eliminará esa infección. Las recomendaciones de detección siguen siendo las mismas independientemente del estado de vacunación: De 21 a 29 años: prueba de Papanicolaou cada 3 años; De 30 a 65 años: prueba de Papanicolaou cada 3 años, prueba de VPH cada 5 años o ambas juntas (coprueba) cada 5 años. La detección regular combinada con la vacunación proporciona la mejor protección contra el cáncer de cuello uterino.',
+                followups_en: ['How often should I get Pap smears?', 'What is the difference between a Pap test and HPV test?', 'When can I stop getting Pap smears?', 'What happens if my Pap test is abnormal?'],
+                followups_es: ['¿Con qué frecuencia debo hacerme pruebas de Papanicolaou?', '¿Cuál es la diferencia entre una prueba de Papanicolaou y una prueba de VPH?', '¿Cuándo puedo dejar de hacerme pruebas de Papanicolaou?', '¿Qué sucede si mi prueba de Papanicolaou es anormal?']
+            },
+            // Follow-up questions
+            'What are the symptoms of HPV?': {
+                answer_en: 'Most HPV infections cause no symptoms at all, which is why many people don\'t know they have it. When symptoms do occur: 1) Low-risk HPV (types 6 & 11): Can cause genital warts that appear as small bumps or groups of bumps in the genital area. They can be small or large, raised or flat, or shaped like cauliflower. 2) High-risk HPV: Usually causes no symptoms until it has already caused serious health problems. Cervical cancer may not cause symptoms until it\'s quite advanced. That\'s why regular screening is crucial - it can detect cell changes before they become cancer. Some people may experience abnormal bleeding, pelvic pain, or pain during intercourse, but these symptoms typically occur in later stages.',
+                answer_es: 'La mayoría de las infecciones por VPH no causan síntomas en absoluto, por lo que muchas personas no saben que lo tienen. Cuando aparecen síntomas: 1) VPH de bajo riesgo (tipos 6 y 11): Puede causar verrugas genitales que aparecen como pequeños bultos o grupos de bultos en el área genital. Pueden ser pequeños o grandes, elevados o planos, o con forma de coliflor. 2) VPH de alto riesgo: Generalmente no causa síntomas hasta que ya ha causado problemas de salud graves. El cáncer de cuello uterino puede no causar síntomas hasta que esté bastante avanzado. Por eso los exámenes regulares son cruciales: pueden detectar cambios celulares antes de que se conviertan en cáncer. Algunas personas pueden experimentar sangrado anormal, dolor pélvico o dolor durante las relaciones sexuales, pero estos síntomas generalmente ocurren en etapas posteriores.',
+                followups_en: ['How do I know if I have HPV?', 'What do genital warts look like?', 'Can HPV cause symptoms in men?'],
+                followups_es: ['¿Cómo sé si tengo VPH?', '¿Cómo se ven las verrugas genitales?', '¿Puede el VPH causar síntomas en los hombres?']
+            },
+            '¿Cuáles son los síntomas del VPH?': {
+                answer_en: 'Most HPV infections cause no symptoms at all, which is why many people don\'t know they have it. When symptoms do occur: 1) Low-risk HPV (types 6 & 11): Can cause genital warts that appear as small bumps or groups of bumps in the genital area. They can be small or large, raised or flat, or shaped like cauliflower. 2) High-risk HPV: Usually causes no symptoms until it has already caused serious health problems. Cervical cancer may not cause symptoms until it\'s quite advanced. That\'s why regular screening is crucial - it can detect cell changes before they become cancer. Some people may experience abnormal bleeding, pelvic pain, or pain during intercourse, but these symptoms typically occur in later stages.',
+                answer_es: 'La mayoría de las infecciones por VPH no causan síntomas en absoluto, por lo que muchas personas no saben que lo tienen. Cuando aparecen síntomas: 1) VPH de bajo riesgo (tipos 6 y 11): Puede causar verrugas genitales que aparecen como pequeños bultos o grupos de bultos en el área genital. Pueden ser pequeños o grandes, elevados o planos, o con forma de coliflor. 2) VPH de alto riesgo: Generalmente no causa síntomas hasta que ya ha causado problemas de salud graves. El cáncer de cuello uterino puede no causar síntomas hasta que esté bastante avanzado. Por eso los exámenes regulares son cruciales: pueden detectar cambios celulares antes de que se conviertan en cáncer. Algunas personas pueden experimentar sangrado anormal, dolor pélvico o dolor durante las relaciones sexuales, pero estos síntomas generalmente ocurren en etapas posteriores.',
+                followups_en: ['How do I know if I have HPV?', 'What do genital warts look like?', 'Can HPV cause symptoms in men?'],
+                followups_es: ['¿Cómo sé si tengo VPH?', '¿Cómo se ven las verrugas genitales?', '¿Puede el VPH causar síntomas en los hombres?']
+            },
+            'How is HPV transmitted?': {
+                answer_en: 'HPV is transmitted through intimate skin-to-skin contact, most commonly during vaginal, anal, or oral sex. Key facts about transmission: 1) You can get HPV by having vaginal, anal, or oral sex with someone who has the virus. 2) It spreads through skin-to-skin contact, not through blood or bodily fluids like many other infections. 3) HPV can be passed even when an infected person has no signs or symptoms. 4) You can develop symptoms years after being infected, making it hard to know when you first became infected. 5) Condoms lower the risk but don\'t completely prevent transmission because HPV can infect areas not covered by a condom. 6) HPV is so common that nearly all sexually active people get it at some point if they aren\'t vaccinated.',
+                answer_es: 'El VPH se transmite a través del contacto íntimo de piel con piel, más comúnmente durante las relaciones sexuales vaginales, anales u orales. Datos clave sobre la transmisión: 1) Puede contraer VPH al tener relaciones sexuales vaginales, anales u orales con alguien que tiene el virus. 2) Se propaga a través del contacto piel con piel, no a través de sangre o fluidos corporales como muchas otras infecciones. 3) El VPH puede transmitirse incluso cuando una persona infectada no tiene signos o síntomas. 4) Puede desarrollar síntomas años después de estar infectado, lo que dificulta saber cuándo se infectó por primera vez. 5) Los condones reducen el riesgo pero no previenen completamente la transmisión porque el VPH puede infectar áreas no cubiertas por un condón. 6) El VPH es tan común que casi todas las personas sexualmente activas lo contraen en algún momento si no están vacunadas.',
+                followups_en: ['Can you get HPV from kissing?', 'Can HPV spread through touching?', 'How long is HPV contagious?'],
+                followups_es: ['¿Puedes contraer VPH por besar?', '¿Puede el VPH propagarse a través del tacto?', '¿Cuánto tiempo es contagioso el VPH?']
+            },
+            '¿Cómo se transmite el VPH?': {
+                answer_en: 'HPV is transmitted through intimate skin-to-skin contact, most commonly during vaginal, anal, or oral sex. Key facts about transmission: 1) You can get HPV by having vaginal, anal, or oral sex with someone who has the virus. 2) It spreads through skin-to-skin contact, not through blood or bodily fluids like many other infections. 3) HPV can be passed even when an infected person has no signs or symptoms. 4) You can develop symptoms years after being infected, making it hard to know when you first became infected. 5) Condoms lower the risk but don\'t completely prevent transmission because HPV can infect areas not covered by a condom. 6) HPV is so common that nearly all sexually active people get it at some point if they aren\'t vaccinated.',
+                answer_es: 'El VPH se transmite a través del contacto íntimo de piel con piel, más comúnmente durante las relaciones sexuales vaginales, anales u orales. Datos clave sobre la transmisión: 1) Puede contraer VPH al tener relaciones sexuales vaginales, anales u orales con alguien que tiene el virus. 2) Se propaga a través del contacto piel con piel, no a través de sangre o fluidos corporales como muchas otras infecciones. 3) El VPH puede transmitirse incluso cuando una persona infectada no tiene signos o síntomas. 4) Puede desarrollar síntomas años después de estar infectado, lo que dificulta saber cuándo se infectó por primera vez. 5) Los condones reducen el riesgo pero no previenen completamente la transmisión porque el VPH puede infectar áreas no cubiertas por un condón. 6) El VPH es tan común que casi todas las personas sexualmente activas lo contraen en algún momento si no están vacunadas.',
+                followups_en: ['Can you get HPV from kissing?', 'Can HPV spread through touching?', 'How long is HPV contagious?'],
+                followups_es: ['¿Puedes contraer VPH por besar?', '¿Puede el VPH propagarse a través del tacto?', '¿Cuánto tiempo es contagioso el VPH?']
+            },
+            'Can HPV be cured?': {
+                answer_en: 'There is no cure for the HPV virus itself, but the good news is that in most cases your body can clear the infection on its own. Here\'s what you need to know: 1) About 90% of HPV infections go away on their own within 2 years without causing health problems. 2) While we can\'t cure the virus, we can treat the health problems it causes, like genital warts and precancerous cell changes. 3) Genital warts can be removed through various treatments including prescription creams, freezing, laser therapy, or surgical removal. 4) Precancerous changes detected through screening can be treated before they develop into cancer. 5) Having a healthy immune system helps your body fight off HPV naturally. This is why most young, healthy people clear the infection without treatment. Even if HPV doesn\'t go away, regular screening and early treatment of any problems it causes can prevent serious complications.',
+                answer_es: 'No existe cura para el virus del VPH en sí, pero la buena noticia es que en la mayoría de los casos su cuerpo puede eliminar la infección por sí solo. Esto es lo que necesita saber: 1) Aproximadamente el 90% de las infecciones por VPH desaparecen por sí solas en 2 años sin causar problemas de salud. 2) Si bien no podemos curar el virus, podemos tratar los problemas de salud que causa, como las verrugas genitales y los cambios celulares precancerosos. 3) Las verrugas genitales se pueden eliminar a través de varios tratamientos que incluyen cremas recetadas, congelación, terapia con láser o extirpación quirúrgica. 4) Los cambios precancerosos detectados mediante exámenes se pueden tratar antes de que se conviertan en cáncer. 5) Tener un sistema inmunológico saludable ayuda a su cuerpo a combatir el VPH de forma natural. Por eso la mayoría de las personas jóvenes y sanas eliminan la infección sin tratamiento. Incluso si el VPH no desaparece, los exámenes regulares y el tratamiento temprano de cualquier problema que cause pueden prevenir complicaciones graves.',
+                followups_en: ['How long does HPV stay in your body?', 'Can my immune system fight HPV?', 'What treatments are available for HPV?'],
+                followups_es: ['¿Cuánto tiempo permanece el VPH en su cuerpo?', '¿Puede mi sistema inmunológico combatir el VPH?', '¿Qué tratamientos están disponibles para el VPH?']
+            },
+            '¿Se puede curar el VPH?': {
+                answer_en: 'There is no cure for the HPV virus itself, but the good news is that in most cases your body can clear the infection on its own. Here\'s what you need to know: 1) About 90% of HPV infections go away on their own within 2 years without causing health problems. 2) While we can\'t cure the virus, we can treat the health problems it causes, like genital warts and precancerous cell changes. 3) Genital warts can be removed through various treatments including prescription creams, freezing, laser therapy, or surgical removal. 4) Precancerous changes detected through screening can be treated before they develop into cancer. 5) Having a healthy immune system helps your body fight off HPV naturally. This is why most young, healthy people clear the infection without treatment. Even if HPV doesn\'t go away, regular screening and early treatment of any problems it causes can prevent serious complications.',
+                answer_es: 'No existe cura para el virus del VPH en sí, pero la buena noticia es que en la mayoría de los casos su cuerpo puede eliminar la infección por sí solo. Esto es lo que necesita saber: 1) Aproximadamente el 90% de las infecciones por VPH desaparecen por sí solas en 2 años sin causar problemas de salud. 2) Si bien no podemos curar el virus, podemos tratar los problemas de salud que causa, como las verrugas genitales y los cambios celulares precancerosos. 3) Las verrugas genitales se pueden eliminar a través de varios tratamientos que incluyen cremas recetadas, congelación, terapia con láser o extirpación quirúrgica. 4) Los cambios precancerosos detectados mediante exámenes se pueden tratar antes de que se conviertan en cáncer. 5) Tener un sistema inmunológico saludable ayuda a su cuerpo a combatir el VPH de forma natural. Por eso la mayoría de las personas jóvenes y sanas eliminan la infección sin tratamiento. Incluso si el VPH no desaparece, los exámenes regulares y el tratamiento temprano de cualquier problema que cause pueden prevenir complicaciones graves.',
+                followups_en: ['How long does HPV stay in your body?', 'Can my immune system fight HPV?', 'What treatments are available for HPV?'],
+                followups_es: ['¿Cuánto tiempo permanece el VPH en su cuerpo?', '¿Puede mi sistema inmunológico combatir el VPH?', '¿Qué tratamientos están disponibles para el VPH?']
+            }
+        };
+
+        // Translations
+        const translations = {
+            en: {
+                title: 'HPV Health Assistant',
+                subtitle: 'Get reliable information about HPV and cervical health',
+                placeholder: 'Type your question here...',
+                startOver: 'Start Over',
+                endConversation: 'End Conversation',
+                disclaimer: 'This information is for educational purposes only and does not replace professional medical advice. Please consult with a healthcare provider for personalized guidance.',
+                emptyTitle: 'Welcome! How can I help you today?',
+                emptySubtitle: 'Select a question below or type your own',
+                listening: 'Listening...',
+                noMatch: 'I couldn\'t find a predefined answer. Would you like me to use AI to answer? (Set your OpenAI API key in settings)',
+                settingsTitle: 'API Settings',
+                apiKeyLabel: 'OpenAI API Key',
+                apiKeyHelp: 'Enter your OpenAI API key to answer custom questions',
+                saveKey: 'Save Key',
+                close: 'Close',
+                apiKeySuccess: 'API key saved successfully!',
+                apiKeyError: 'Invalid API key. Please check and try again.',
+                noApiKey: 'Please set your OpenAI API key in settings to answer custom questions.',
+                aiThinking: 'Thinking...',
+                apiError: 'Error connecting to OpenAI. Please check your API key and try again.',
+                noSpeech: 'No speech detected. Please try again.',
+                notSupported: 'Voice input is not supported in your browser. Please use Chrome or Edge.',
+                noPermission: 'Microphone permission denied. Please allow microphone access.'
+            },
+            es: {
+                title: 'Asistente de Salud sobre VPH',
+                subtitle: 'Obtenga información confiable sobre el VPH y la salud cervical',
+                placeholder: 'Escriba su pregunta aquí...',
+                startOver: 'Comenzar de nuevo',
+                endConversation: 'Finalizar Conversación',
+                disclaimer: 'Esta información es solo para fines educativos y no reemplaza el asesoramiento médico profesional. Consulte con un proveedor de atención médica para obtener orientación personalizada.',
+                emptyTitle: '¡Bienvenido! ¿Cómo puedo ayudarte hoy?',
+                emptySubtitle: 'Seleccione una pregunta a continuación o escriba la suya propia',
+                listening: 'Escuchando...',
+                noMatch: 'No pude encontrar una respuesta predefinida. ¿Quieres que use IA para responder? (Establece tu clave API de OpenAI en configuración)',
+                settingsTitle: 'Configuración de API',
+                apiKeyLabel: 'Clave API de OpenAI',
+                apiKeyHelp: 'Ingrese su clave API de OpenAI para responder preguntas personalizadas',
+                saveKey: 'Guardar clave',
+                close: 'Cerrar',
+                apiKeySuccess: '¡Clave API guardada exitosamente!',
+                apiKeyError: 'Clave API inválida. Por favor, verifique e intente nuevamente.',
+                noApiKey: 'Configure su clave API de OpenAI en la configuración para responder preguntas personalizadas.',
+                aiThinking: 'Pensando...',
+                apiError: 'Error al conectar con OpenAI. Verifique su clave API e intente nuevamente.',
+                noSpeech: 'No se detectó voz. Por favor, inténtelo de nuevo.',
+                notSupported: 'La entrada de voz no es compatible con su navegador. Utilice Chrome o Edge.',
+                noPermission: 'Permiso de micrófono denegado. Permita el acceso al micrófono.'
+            }
+        };
+
+        // Application State
+        let currentLang = 'en';
+        let chatHistory = [];
+        let isListening = false;
+        let recognition = null;
+        let apiKey = '';
+        let isProcessing = false;
+        let wasVoiceInput = false; // NEW: Track if current question was via voice
+        let currentUtterance = null; // NEW: Track current TTS utterance
+        let isSpeaking = false; // NEW: Track if TTS is active
+
+        // OpenAI Configuration with NEW SYSTEM PROMPT
+        const OPENAI_CONFIG = {
+            endpoint: 'https://api.openai.com/v1/chat/completions',
+            model: 'gpt-3.5-turbo',
+            maxTokens: 800,
+            temperature: 0.7,
+            systemMessage: "You are a helpful medical assistant specializing in HPV-related information. Provide accurate and concise answers based on the latest medical guidelines and research. Please answer the questions as you would explain to a five-year old. Avoid using complex medical jargon unless absolutely necessary, and always aim to educate in a clear and friendly manner. Don't make the answers sound scary or verbose. At the same time, attempt to stick to an answer that's very short. If you don't know the answer, simply say you don't know. If the question is not related to HPV, politely decline to answer."
+        };
+
+        // DOM Elements
+        const headerTitle = document.getElementById('headerTitle');
+        const headerSubtitle = document.getElementById('headerSubtitle');
+        const langToggle = document.getElementById('langToggle');
+        const startOverBtn = document.getElementById('startOverBtn');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const micBtn = document.getElementById('micBtn');
+        const messages = document.getElementById('messages');
+        const starterQuestions = document.getElementById('starterQuestions');
+        const emptyState = document.getElementById('emptyState');
+        const emptyTitle = document.getElementById('emptyTitle');
+        const emptySubtitle = document.getElementById('emptySubtitle');
+        const disclaimer = document.getElementById('disclaimer');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const settingsTitle = document.getElementById('settingsTitle');
+        const apiKeyLabel = document.getElementById('apiKeyLabel');
+        const apiKeyHelp = document.getElementById('apiKeyHelp');
+        const endConversationBtn = document.getElementById('endConversationBtn');
+
+        // Initialize Speech Recognition
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                
+                recognition.onstart = () => {
+                    isListening = true;
+                    micBtn.classList.add('active', 'listening');
+                };
+                
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    userInput.value = transcript;
+                    wasVoiceInput = true; // NEW: Mark this as voice input
+                    handleSendMessage();
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    isListening = false;
+                    micBtn.classList.remove('active', 'listening');
+                    
+                    // Show error message based on error type
+                    let errorMsg = translations[currentLang].noSpeech;
+                    if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+                        errorMsg = translations[currentLang].noPermission;
+                    } else if (event.error === 'no-speech') {
+                        errorMsg = translations[currentLang].noSpeech;
+                    }
+                    
+                    // Show error in input field temporarily
+                    const originalPlaceholder = userInput.placeholder;
+                    userInput.placeholder = errorMsg;
+                    setTimeout(() => {
+                        userInput.placeholder = originalPlaceholder;
+                    }, 3000);
+                };
+                
+                recognition.onend = () => {
+                    isListening = false;
+                    micBtn.classList.remove('active', 'listening');
+                };
+            } else {
+                // Show not supported message
+                micBtn.title = translations[currentLang].notSupported;
+                micBtn.style.opacity = '0.5';
+                micBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        // Update Language
+        function updateLanguage() {
+            const t = translations[currentLang];
+            headerTitle.textContent = t.title;
+            headerSubtitle.textContent = t.subtitle;
+            userInput.placeholder = t.placeholder;
+            startOverBtn.textContent = t.startOver;
+            endConversationBtn.textContent = t.endConversation;
+            disclaimer.textContent = t.disclaimer;
+            emptyTitle.textContent = t.emptyTitle;
+            emptySubtitle.textContent = t.emptySubtitle;
+            langToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
+            settingsTitle.textContent = t.settingsTitle;
+            apiKeyLabel.textContent = t.apiKeyLabel;
+            apiKeyHelp.textContent = t.apiKeyHelp;
+            saveApiKeyBtn.textContent = t.saveKey;
+            closeSettingsBtn.textContent = t.close;
+            
+            renderStarterQuestions();
+            
+            if (recognition) {
+                recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+            }
+        }
+
+        // NEW: Text-to-Speech Function
+        function speakText(text) {
+            // Stop any ongoing speech
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+            }
+            
+            // Create new utterance
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Set language based on current selection
+            currentUtterance.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+            currentUtterance.rate = 1.0;
+            currentUtterance.pitch = 1.0;
+            currentUtterance.volume = 1.0;
+            
+            // Get voices and set appropriate one
+            const voices = window.speechSynthesis.getVoices();
+            const targetLang = currentLang === 'en' ? 'en' : 'es';
+            const voice = voices.find(v => v.lang.startsWith(targetLang));
+            if (voice) {
+                currentUtterance.voice = voice;
+            }
+            
+            // Event handlers
+            currentUtterance.onstart = () => {
+                isSpeaking = true;
+                showSpeakingIndicator();
+            };
+            
+            currentUtterance.onend = () => {
+                isSpeaking = false;
+                hideSpeakingIndicator();
+            };
+            
+            currentUtterance.onerror = (event) => {
+                console.error('TTS error:', event);
+                isSpeaking = false;
+                hideSpeakingIndicator();
+            };
+            
+            // Speak
+            window.speechSynthesis.speak(currentUtterance);
+        }
+        
+        // NEW: Stop speaking
+        function stopSpeaking() {
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                hideSpeakingIndicator();
+            }
+        }
+        
+        // NEW: Show speaking indicator
+        function showSpeakingIndicator() {
+            let indicator = document.getElementById('speaking-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'speaking-indicator';
+                indicator.style.cssText = 'position: fixed; bottom: 100px; right: 24px; background: var(--color-primary); color: var(--color-btn-primary-text); padding: 12px 20px; border-radius: var(--radius-base); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 10px; z-index: 150; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);';
+                indicator.innerHTML = '<span style="font-size: 20px;">🔊</span><span id="speaking-text">Speaking...</span><button id="stop-speaking-btn" style="margin-left: 10px; background: rgba(255,255,255,0.2); border: none; color: inherit; padding: 4px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-xs);">Stop</button>';
+                document.body.appendChild(indicator);
+                
+                document.getElementById('stop-speaking-btn').addEventListener('click', stopSpeaking);
+            }
+            indicator.style.display = 'flex';
+            document.getElementById('speaking-text').textContent = currentLang === 'en' ? 'Speaking...' : 'Hablando...';
+        }
+        
+        // NEW: Hide speaking indicator
+        function hideSpeakingIndicator() {
+            const indicator = document.getElementById('speaking-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }
+
+        // Render Starter Questions
+        function renderStarterQuestions() {
+            if (chatHistory.length > 0) {
+                starterQuestions.classList.add('hidden');
+                return;
+            }
+            
+            starterQuestions.classList.remove('hidden');
+            starterQuestions.innerHTML = '';
+            
+            // Use new initialSuggestions data structure with current language
+            initialSuggestions.forEach(suggestion => {
+                const card = document.createElement('div');
+                card.className = 'starter-card';
+                const title = typeof suggestion.title === 'object' ? suggestion.title[currentLang] : suggestion.title;
+                card.innerHTML = `<div class="starter-card-text">${escapeHtml(title)}</div>`;
+                card.addEventListener('click', () => handleSuggestionClick(suggestion));
+                starterQuestions.appendChild(card);
+            });
+        }
+
+        // NEW: Handle Suggestion Click (from starter or follow-up)
+        async function handleSuggestionClick(suggestion) {
+            if (isProcessing) return;
+            
+            // Extract language-specific values
+            const question = typeof suggestion.action === 'object' ? suggestion.action[currentLang] : (suggestion.action || suggestion.title);
+            const answer = typeof suggestion.defaultAnswer === 'object' ? suggestion.defaultAnswer[currentLang] : suggestion.defaultAnswer;
+            const followups = typeof suggestion.followups === 'object' ? (suggestion.followups[currentLang] || []) : (suggestion.followups || []);
+            
+            addUserMessage(question);
+            
+            // Add to chat history for OpenAI context
+            chatHistory.push({ role: 'user', content: question });
+            chatHistory.push({ role: 'assistant', content: answer });
+            
+            addAssistantMessage(answer, followups);
+            
+            // NEW: Speak if voice was used
+            if (wasVoiceInput) {
+                speakText(answer);
+                wasVoiceInput = false; // Reset flag
+            }
+            
+            hideEmptyState();
+        }
+        
+        // Handle Question Click (for typed questions - always call OpenAI)
+        async function handleQuestionClick(question) {
+            if (isProcessing) return;
+            
+            addUserMessage(question);
+            
+            // For typed questions, always call OpenAI (no similarity matching)
+            if (apiKey) {
+                await callOpenAI(question);
+            } else {
+                const noKeyMsg = translations[currentLang].noApiKey;
+                addAssistantMessage(noKeyMsg, []);
+                if (wasVoiceInput) {
+                    speakText(noKeyMsg);
+                    wasVoiceInput = false;
+                }
+            }
+            hideEmptyState();
+        }
+
+        // Find Answer
+        function findAnswer(question) {
+            // Normalize question for comparison
+            const normalizedQuestion = question.toLowerCase().trim();
+            
+            // Check exact matches
+            for (const key in knowledgeBase) {
+                const entry = knowledgeBase[key];
+                if (entry.en && entry.en.toLowerCase() === normalizedQuestion) {
+                    return {
+                        text: entry[`answer_${currentLang}`],
+                        followups: entry[`followups_${currentLang}`] || []
+                    };
+                }
+                if (entry.es && entry.es.toLowerCase() === normalizedQuestion) {
+                    return {
+                        text: entry[`answer_${currentLang}`],
+                        followups: entry[`followups_${currentLang}`] || []
+                    };
+                }
+                if (entry.answer_en && key.toLowerCase() === normalizedQuestion) {
+                    return {
+                        text: entry[`answer_${currentLang}`],
+                        followups: entry[`followups_${currentLang}`] || []
+                    };
+                }
+            }
+            
+            // Fuzzy matching with keywords
+            const keywords = {
+                vaccine: ['vaccine', 'vaccination', 'vacuna', 'vacunación'],
+                symptoms: ['symptom', 'síntoma', 'sign', 'señal'],
+                transmission: ['transmit', 'spread', 'transmite', 'propaga', 'contagio'],
+                cure: ['cure', 'treat', 'cura', 'tratamiento'],
+                cancer: ['cancer', 'cáncer'],
+                pap: ['pap', 'papanicolaou', 'smear', 'screening', 'test'],
+                protect: ['protect', 'prevent', 'proteger', 'prevenir'],
+                risk: ['risk', 'worried', 'concern', 'riesgo', 'preocup']
+            };
+            
+            for (const category in keywords) {
+                for (const keyword of keywords[category]) {
+                    if (normalizedQuestion.includes(keyword)) {
+                        // Return contextually relevant answer
+                        if (category === 'symptoms' && knowledgeBase['What are the symptoms of HPV?']) {
+                            const entry = knowledgeBase['What are the symptoms of HPV?'];
+                            return {
+                                text: entry[`answer_${currentLang}`],
+                                followups: entry[`followups_${currentLang}`] || []
+                            };
+                        }
+                        if (category === 'transmission' && knowledgeBase['How is HPV transmitted?']) {
+                            const entry = knowledgeBase['How is HPV transmitted?'];
+                            return {
+                                text: entry[`answer_${currentLang}`],
+                                followups: entry[`followups_${currentLang}`] || []
+                            };
+                        }
+                        if (category === 'cure' && knowledgeBase['Can HPV be cured?']) {
+                            const entry = knowledgeBase['Can HPV be cured?'];
+                            return {
+                                text: entry[`answer_${currentLang}`],
+                                followups: entry[`followups_${currentLang}`] || []
+                            };
+                        }
+                        if (category === 'vaccine' || category === 'protect') {
+                            return {
+                                text: knowledgeBase.q2[`answer_${currentLang}`],
+                                followups: knowledgeBase.q2[`followups_${currentLang}`] || []
+                            };
+                        }
+                        if (category === 'pap') {
+                            return {
+                                text: knowledgeBase.q4[`answer_${currentLang}`],
+                                followups: knowledgeBase.q4[`followups_${currentLang}`] || []
+                            };
+                        }
+                        if (category === 'risk' || category === 'cancer') {
+                            return {
+                                text: knowledgeBase.q3[`answer_${currentLang}`],
+                                followups: knowledgeBase.q3[`followups_${currentLang}`] || []
+                            };
+                        }
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        // Add User Message
+        function addUserMessage(text) {
+            chatHistory.push({ role: 'user', content: text });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                </div>
+            `;
+            messages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Add Assistant Message
+        function addAssistantMessage(text, followups = []) {
+            // Don't add to chatHistory here - already added in handleSuggestionClick or callOpenAI
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            
+            let followupHtml = '';
+            if (followups && followups.length > 0) {
+                followupHtml = '<div class="followup-questions">';
+                followups.forEach(followup => {
+                    const followupTitle = followup.title || followup;
+                    followupHtml += `<button class="followup-btn" data-followup='${JSON.stringify(followup).replace(/'/g, "&#39;")}'>${escapeHtml(followupTitle)}</button>`;
+                });
+                followupHtml += '</div>';
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                    ${followupHtml}
+                </div>
+            `;
+            messages.appendChild(messageDiv);
+            
+            // Add click handlers to follow-up buttons
+            if (followups && followups.length > 0) {
+                const btns = messageDiv.querySelectorAll('.followup-btn');
+                btns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const followupData = JSON.parse(btn.getAttribute('data-followup'));
+                        handleSuggestionClick(followupData);
+                    });
+                });
+            }
+            
+            scrollToBottom();
+        }
+
+        // Handle Follow-up Click (legacy - now handled inline)
+        window.handleFollowup = function(question) {
+            handleQuestionClick(question);
+        };
+
+        // Handle Send Message
+        function handleSendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            
+            userInput.value = '';
+            // For any typed question, call OpenAI directly (no similarity matching)
+            handleQuestionClick(text);
+        }
+
+        // Scroll to Bottom
+        function scrollToBottom() {
+            messages.scrollTop = messages.scrollHeight;
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // Hide Empty State
+        function hideEmptyState() {
+            emptyState.classList.add('hidden');
+            starterQuestions.classList.add('hidden');
+        }
+
+        // Show Empty State
+        function showEmptyState() {
+            emptyState.classList.remove('hidden');
+            renderStarterQuestions();
+        }
+
+        // Call OpenAI API
+        async function callOpenAI(userQuestion) {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            // Add typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            messages.appendChild(typingDiv);
+            scrollToBottom();
+            
+            try {
+                // Build messages array with conversation history
+                const messagesArray = [
+                    {
+                        role: 'system',
+                        content: OPENAI_CONFIG.systemMessage
+                    }
+                ];
+                
+                // Add conversation history (excluding the current question which is already in chatHistory)
+                chatHistory.forEach(msg => {
+                    if (msg.role !== 'assistant' || !msg.followups) {
+                        messagesArray.push({
+                            role: msg.role,
+                            content: msg.content
+                        });
+                    }
+                });
+                
+                const response = await fetch(OPENAI_CONFIG.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: OPENAI_CONFIG.model,
+                        messages: messagesArray,
+                        max_tokens: OPENAI_CONFIG.maxTokens,
+                        temperature: OPENAI_CONFIG.temperature
+                    })
+                });
+                
+                // Remove typing indicator
+                const typingIndicator = document.getElementById('typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('OpenAI API Error:', errorData);
+                    addAssistantMessage(translations[currentLang].apiError, []);
+                    isProcessing = false;
+                    return;
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                
+                // Add to chat history
+                chatHistory.push({ role: 'assistant', content: aiResponse });
+                
+                addAssistantMessage(aiResponse, []);
+                
+                // NEW: Speak response if voice input was used
+                if (wasVoiceInput) {
+                    speakText(aiResponse);
+                    wasVoiceInput = false; // Reset flag
+                }
+                
+            } catch (error) {
+                console.error('Error calling OpenAI:', error);
+                
+                // Remove typing indicator
+                const typingIndicator = document.getElementById('typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+                
+                addAssistantMessage(translations[currentLang].apiError, []);
+            }
+            
+            isProcessing = false;
+        }
+        
+        // Save API Key
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                showApiKeyStatus(translations[currentLang].apiKeyError, false);
+                return;
+            }
+            
+            apiKey = key;
+            showApiKeyStatus(translations[currentLang].apiKeySuccess, true);
+            
+            // Close settings panel after 1 second
+            setTimeout(() => {
+                settingsPanel.classList.add('hidden');
+            }, 1000);
+        }
+        
+        // Show API Key Status
+        function showApiKeyStatus(message, isSuccess) {
+            apiKeyStatus.textContent = message;
+            apiKeyStatus.className = 'api-key-status ' + (isSuccess ? 'success' : 'error');
+            apiKeyStatus.classList.remove('hidden');
+            
+            setTimeout(() => {
+                apiKeyStatus.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Start Over
+        function startOver() {
+            chatHistory = [];
+            messages.innerHTML = '';
+            wasVoiceInput = false;
+            stopSpeaking(); // Stop any ongoing speech
+            showEmptyState();
+        }
+        
+        // Export Conversation
+        function exportConversation() {
+            if (chatHistory.length === 0) {
+                alert(currentLang === 'en' ? 'No conversation to export yet.' : 'Aún no hay conversación para exportar.');
+                return;
+            }
+            
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 19).replace(/[T:]/g, '-');
+            const filename = `hpv-conversation-${dateStr}.txt`;
+            
+            let content = currentLang === 'en' ? 'HPV Health Assistant Conversation\n' : 'Conversación del Asistente de Salud sobre VPH\n';
+            content += (currentLang === 'en' ? 'Date: ' : 'Fecha: ') + now.toLocaleString() + '\n';
+            content += '================================\n\n';
+            
+            chatHistory.forEach(msg => {
+                const roleLabel = msg.role === 'user' 
+                    ? (currentLang === 'en' ? 'User' : 'Usuario')
+                    : (currentLang === 'en' ? 'Assistant' : 'Asistente');
+                content += `${roleLabel}: ${msg.content}\n\n`;
+            });
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            // Ask if user wants to clear conversation
+            setTimeout(() => {
+                const clearMsg = currentLang === 'en' 
+                    ? 'Conversation exported! Would you like to start a new conversation?'
+                    : '¡Conversación exportada! ¿Le gustaría comenzar una nueva conversación?';
+                if (confirm(clearMsg)) {
+                    startOver();
+                }
+            }, 500);
+        }
+
+        // Event Listeners
+        langToggle.addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'es' : 'en';
+            updateLanguage();
+        });
+
+        startOverBtn.addEventListener('click', startOver);
+        
+        endConversationBtn.addEventListener('click', exportConversation);
+
+        sendBtn.addEventListener('click', handleSendMessage);
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSendMessage();
+            }
+        });
+
+        micBtn.addEventListener('click', () => {
+            if (!recognition) {
+                alert(translations[currentLang].notSupported);
+                return;
+            }
+            
+            if (isListening) {
+                recognition.stop();
+            } else {
+                // Set language based on current selection
+                recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+                try {
+                    recognition.start();
+                } catch (error) {
+                    console.error('Error starting recognition:', error);
+                }
+            }
+        });
+        
+        settingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.toggle('hidden');
+        });
+        
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.add('hidden');
+        });
+        
+        saveApiKeyBtn.addEventListener('click', saveApiKey);
+        
+        apiKeyInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveApiKey();
+            }
+        });
+
+        // Initialize App
+        function init() {
+            initSpeechRecognition();
+            updateLanguage();
+            renderStarterQuestions();
+            
+            // Load voices for TTS
+            if ('speechSynthesis' in window) {
+                // Load voices
+                window.speechSynthesis.onvoiceschanged = () => {
+                    window.speechSynthesis.getVoices();
+                };
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
