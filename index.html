@@ -928,13 +928,13 @@ body {
                 listening: 'Listening...',
                 noMatch: 'I couldn\'t find a predefined answer. Would you like me to use AI to answer? (Set your OpenAI API key in settings)',
                 settingsTitle: 'API Settings',
-                apiKeyLabel: 'OpenAI API Key',
-                apiKeyHelp: 'Enter your OpenAI API key to answer custom questions',
-                saveKey: 'Save Key',
+                // apiKeyLabel: 'OpenAI API Key',
+                // apiKeyHelp: 'Enter your OpenAI API key to answer custom questions',
+                // saveKey: 'Save Key',
                 close: 'Close',
-                apiKeySuccess: 'API key saved successfully!',
-                apiKeyError: 'Invalid API key. Please check and try again.',
-                noApiKey: 'Please set your OpenAI API key in settings to answer custom questions.',
+                // apiKeySuccess: 'API key saved successfully!',
+                // apiKeyError: 'Invalid API key. Please check and try again.',
+                // noApiKey: 'Please set your OpenAI API key in settings to answer custom questions.',
                 aiThinking: 'Thinking...',
                 apiError: 'Error connecting to OpenAI. Please check your API key and try again.',
                 noSpeech: 'No speech detected. Please try again.',
@@ -953,13 +953,13 @@ body {
                 listening: 'Escuchando...',
                 noMatch: 'No pude encontrar una respuesta predefinida. ¿Quieres que use IA para responder? (Establece tu clave API de OpenAI en configuración)',
                 settingsTitle: 'Configuración de API',
-                apiKeyLabel: 'Clave API de OpenAI',
-                apiKeyHelp: 'Ingrese su clave API de OpenAI para responder preguntas personalizadas',
+                // apiKeyLabel: 'Clave API de OpenAI',
+                // apiKeyHelp: 'Ingrese su clave API de OpenAI para responder preguntas personalizadas',
                 saveKey: 'Guardar clave',
                 close: 'Cerrar',
-                apiKeySuccess: '¡Clave API guardada exitosamente!',
-                apiKeyError: 'Clave API inválida. Por favor, verifique e intente nuevamente.',
-                noApiKey: 'Configure su clave API de OpenAI en la configuración para responder preguntas personalizadas.',
+                // apiKeySuccess: '¡Clave API guardada exitosamente!',
+                // apiKeyError: 'Clave API inválida. Por favor, verifique e intente nuevamente.',
+                // noApiKey: 'Configure su clave API de OpenAI en la configuración para responder preguntas personalizadas.',
                 aiThinking: 'Pensando...',
                 apiError: 'Error al conectar con OpenAI. Verifique su clave API e intente nuevamente.',
                 noSpeech: 'No se detectó voz. Por favor, inténtelo de nuevo.',
@@ -1006,12 +1006,12 @@ body {
         const settingsPanel = document.getElementById('settingsPanel');
         const settingsBtn = document.getElementById('settingsBtn');
         const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-        const apiKeyStatus = document.getElementById('apiKeyStatus');
-        const settingsTitle = document.getElementById('settingsTitle');
-        const apiKeyLabel = document.getElementById('apiKeyLabel');
-        const apiKeyHelp = document.getElementById('apiKeyHelp');
+        // const apiKeyInput = document.getElementById('apiKeyInput');
+        // const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        // const apiKeyStatus = document.getElementById('apiKeyStatus');
+        // const settingsTitle = document.getElementById('settingsTitle');
+        // const apiKeyLabel = document.getElementById('apiKeyLabel');
+        // const apiKeyHelp = document.getElementById('apiKeyHelp');
         const endConversationBtn = document.getElementById('endConversationBtn');
 
         // Initialize Speech Recognition
@@ -1079,11 +1079,11 @@ body {
             emptyTitle.textContent = t.emptyTitle;
             emptySubtitle.textContent = t.emptySubtitle;
             langToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
-            settingsTitle.textContent = t.settingsTitle;
-            apiKeyLabel.textContent = t.apiKeyLabel;
-            apiKeyHelp.textContent = t.apiKeyHelp;
-            saveApiKeyBtn.textContent = t.saveKey;
-            closeSettingsBtn.textContent = t.close;
+            // settingsTitle.textContent = t.settingsTitle;
+            // apiKeyLabel.textContent = t.apiKeyLabel;
+            // apiKeyHelp.textContent = t.apiKeyHelp;
+            // saveApiKeyBtn.textContent = t.saveKey;
+            // closeSettingsBtn.textContent = t.close;
             
             renderStarterQuestions();
             
@@ -1516,32 +1516,32 @@ body {
         }
         
         // Save API Key
-        function saveApiKey() {
-            const key = apiKeyInput.value.trim();
-            if (!key) {
-                showApiKeyStatus(translations[currentLang].apiKeyError, false);
-                return;
-            }
+        // function saveApiKey() {
+        //     const key = apiKeyInput.value.trim();
+        //     if (!key) {
+        //         showApiKeyStatus(translations[currentLang].apiKeyError, false);
+        //         return;
+        //     }
             
-            apiKey = key;
-            showApiKeyStatus(translations[currentLang].apiKeySuccess, true);
+        //     apiKey = key;
+        //     showApiKeyStatus(translations[currentLang].apiKeySuccess, true);
             
-            // Close settings panel after 1 second
-            setTimeout(() => {
-                settingsPanel.classList.add('hidden');
-            }, 1000);
-        }
+        //     // Close settings panel after 1 second
+        //     setTimeout(() => {
+        //         settingsPanel.classList.add('hidden');
+        //     }, 1000);
+        // }
         
-        // Show API Key Status
-        function showApiKeyStatus(message, isSuccess) {
-            apiKeyStatus.textContent = message;
-            apiKeyStatus.className = 'api-key-status ' + (isSuccess ? 'success' : 'error');
-            apiKeyStatus.classList.remove('hidden');
+        // // Show API Key Status
+        // function showApiKeyStatus(message, isSuccess) {
+        //     apiKeyStatus.textContent = message;
+        //     apiKeyStatus.className = 'api-key-status ' + (isSuccess ? 'success' : 'error');
+        //     apiKeyStatus.classList.remove('hidden');
             
-            setTimeout(() => {
-                apiKeyStatus.classList.add('hidden');
-            }, 3000);
-        }
+        //     setTimeout(() => {
+        //         apiKeyStatus.classList.add('hidden');
+        //     }, 3000);
+        // }
 
         // Escape HTML
         function escapeHtml(text) {
@@ -1645,13 +1645,13 @@ body {
         //     settingsPanel.classList.add('hidden');
         // });
         
-        saveApiKeyBtn.addEventListener('click', saveApiKey);
+        // saveApiKeyBtn.addEventListener('click', saveApiKey);
         
-        apiKeyInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                saveApiKey();
-            }
-        });
+        // apiKeyInput.addEventListener('keypress', (e) => {
+        //     if (e.key === 'Enter') {
+        //         saveApiKey();
+        //     }
+        // });
 
         // Initialize App
         function init() {
@@ -1667,8 +1667,12 @@ body {
                 };
             }
         }
-
         init();
+        window.addEventListener('load', () => {
+            init();
+        });
+
+
     </script>
 </body>
 </html>
