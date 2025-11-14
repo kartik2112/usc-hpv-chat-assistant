@@ -1219,7 +1219,8 @@ body {
             isSpeaking = true;
             showSpeakingIndicator();
             
-            const voiceOption = currentLang === 'en' ? 'echo' : 'onyx';
+            // const voiceOption = currentLang === 'en' ? 'echo' : 'onyx';
+            const voiceOption = 'nova'; // Use a female voice for both languages
             
             fetch('https://usc-hpv-chat-assistant-backend.onrender.com/api/tts', {
                 method: 'POST',
