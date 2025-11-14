@@ -544,7 +544,7 @@ body {
 }
 
 .message-content {
-  display: flex;
+  /* display: flex; */
   align-items: flex-start;
   gap: 8px;
 }
@@ -1519,9 +1519,9 @@ body {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message user';
             messageDiv.innerHTML = `
+                <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
                 <div class="message-content">
                     <div class="message-text">${escapeHtml(text)}</div>
-                    <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
                 </div>
             `;
             messages.appendChild(messageDiv);
@@ -1553,9 +1553,9 @@ body {
             }
 
             messageDiv.innerHTML = `
+                <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
                 <div class="message-content">
-                    <div class="message-text">${escapeHtml(text)}</div>
-                    <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
+                    <div class="message-text">${escapeHtml(text)}</div>    
                     ${followupHtml}
                 </div>
             `;
