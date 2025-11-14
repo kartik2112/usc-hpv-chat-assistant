@@ -511,6 +511,42 @@ body {
   }
 }
 
+
+
+/* Speaker button styles */
+.speaker-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: 8px;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.speaker-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.speaker-btn:active {
+  transform: scale(0.95);
+}
+
+.message-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.message-text {
+  flex: 1;
+}
+
 .hidden {
   display: none !important;
 }
@@ -680,7 +716,7 @@ body {
         <header class="header">
             <div class="header-content">
                 <div class="header-text">
-                    <h1 class="header-title" id="headerTitle">HPV Health Assistant</h1>
+                    <h1 class="header-title" id="headerTitle"><span class="header-icon">💬</span>HPV Health Assistant</h1>
                     <p class="header-subtitle" id="headerSubtitle">Get reliable information about HPV</p>
                 </div>
                 <div class="header-actions">
@@ -688,6 +724,10 @@ body {
                     <button class="btn" id="endConversationBtn">End Conversation</button>
                     <button class="btn" id="startOverBtn">Start Over</button>
                     <button class="btn btn-primary" id="langToggle">Español</button>
+                    <button class="btn" id="fontToggle" aria-label="Toggle font size">
+                        <span>🔍</span>
+                        Enlarge Text
+                    </button>
                 </div>
             </div>
         </header>
@@ -1112,7 +1152,7 @@ body {
             }
         }
 
-        // NEW: Text-to-Speech Function
+        // NEW: Browser Text-to-Speech Function
         // function speakText(text) {
         //     // Stop any ongoing speech
         //     if (isSpeaking) {
@@ -1257,7 +1297,7 @@ body {
 
 
         
-        // NEW: Stop speaking
+        // NEW: Browser Text to Speech Stop speaking
         // function stopSpeaking() {
         //     if (isSpeaking) {
         //         window.speechSynthesis.cancel();
@@ -1464,25 +1504,33 @@ body {
         // Add User Message
         function addUserMessage(text) {
             chatHistory.push({ role: 'user', content: text });
-            
+
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message user';
             messageDiv.innerHTML = `
                 <div class="message-content">
                     <div class="message-text">${escapeHtml(text)}</div>
+                    <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
                 </div>
             `;
             messages.appendChild(messageDiv);
+
+            // Add speaker button event listener
+            const speakerBtn = messageDiv.querySelector('.speaker-btn');
+            speakerBtn.addEventListener('click', () => {
+                speakText(text);
+            });
+
             scrollToBottom();
         }
 
         // Add Assistant Message
         function addAssistantMessage(text, followups = []) {
             // Don't add to chatHistory here - already added in handleSuggestionClick or callOpenAI
-            
+
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message assistant';
-            
+
             let followupHtml = '';
             if (followups && followups.length > 0) {
                 followupHtml = '<div class="followup-questions">';
@@ -1492,15 +1540,22 @@ body {
                 });
                 followupHtml += '</div>';
             }
-            
+
             messageDiv.innerHTML = `
                 <div class="message-content">
                     <div class="message-text">${escapeHtml(text)}</div>
+                    <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
                     ${followupHtml}
                 </div>
             `;
             messages.appendChild(messageDiv);
-            
+
+            // Add speaker button event listener
+            const speakerBtn = messageDiv.querySelector('.speaker-btn');
+            speakerBtn.addEventListener('click', () => {
+                speakText(text);
+            });
+
             // Add click handlers to follow-up buttons
             if (followups && followups.length > 0) {
                 const btns = messageDiv.querySelectorAll('.followup-btn');
@@ -1511,7 +1566,7 @@ body {
                     });
                 });
             }
-            
+
             scrollToBottom();
         }
 
@@ -1734,6 +1789,38 @@ body {
         }
 
         // Event Listeners
+        // Font size toggle functionality
+        let isEnlargedFont = false;
+        const fontSizeIncrement = 4; // 4px increment as requested
+
+        fontToggle.addEventListener('click', () => {
+            isEnlargedFont = !isEnlargedFont;
+
+            if (isEnlargedFont) {
+                // Increase all text by 4px
+                document.documentElement.style.setProperty('--font-size-xs', '15px');
+                document.documentElement.style.setProperty('--font-size-sm', '16px');
+                document.documentElement.style.setProperty('--font-size-base', '20px');
+                document.documentElement.style.setProperty('--font-size-md', '20px');
+                document.documentElement.style.setProperty('--font-size-lg', '21px');
+                document.documentElement.style.setProperty('--font-size-xl', '22px');
+                document.documentElement.style.setProperty('--font-size-2xl', '24px');
+                document.documentElement.style.setProperty('--font-size-3xl', '28px');
+                document.documentElement.style.setProperty('--font-size-4xl', '34px');
+            } else {
+                // Reset to original sizes
+                document.documentElement.style.setProperty('--font-size-xs', '11px');
+                document.documentElement.style.setProperty('--font-size-sm', '12px');
+                document.documentElement.style.setProperty('--font-size-base', '16px');
+                document.documentElement.style.setProperty('--font-size-md', '16px');
+                document.documentElement.style.setProperty('--font-size-lg', '17px');
+                document.documentElement.style.setProperty('--font-size-xl', '18px');
+                document.documentElement.style.setProperty('--font-size-2xl', '20px');
+                document.documentElement.style.setProperty('--font-size-3xl', '24px');
+                document.documentElement.style.setProperty('--font-size-4xl', '30px');
+            }
+        });
+
         langToggle.addEventListener('click', () => {
             currentLang = currentLang === 'en' ? 'es' : 'en';
             updateLanguage();
