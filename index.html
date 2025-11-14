@@ -1376,6 +1376,13 @@ body {
             });
         }
 
+        function add_message_to_chat_history(role, content) {
+            if (chatHistory.length >= 1 && (chatHistory[chatHistory.length -1].role === role) && (chatHistory[chatHistory.length -1].content === content)) {
+                return; // Avoid duplicate consecutive entries
+            }
+            chatHistory.push({ role: role, content: content });
+        }
+
         // NEW: Handle Suggestion Click (from starter or follow-up)
         async function handleSuggestionClick(suggestion) {
             if (isProcessing) return;
@@ -1388,9 +1395,9 @@ body {
             addUserMessage(question);
             
             // Add to chat history for OpenAI context
-            chatHistory.push({ role: 'user', content: question });
-            chatHistory.push({ role: 'assistant', content: answer });
-            
+            add_message_to_chat_history('user', question);
+            add_message_to_chat_history('assistant', answer);
+
             addAssistantMessage(answer, followups);
             
             // NEW: Speak if voice was used
@@ -1515,7 +1522,7 @@ body {
 
         // Add User Message
         function addUserMessage(text) {
-            chatHistory.push({ role: 'user', content: text });
+            add_message_to_chat_history('user', text);
 
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message user';
@@ -1690,8 +1697,8 @@ body {
                 const aiResponse = data.message;
                 
                 // Add to chat history
-                chatHistory.push({ role: 'assistant', content: aiResponse });
-                
+                add_message_to_chat_history('assistant', aiResponse);
+
                 addAssistantMessage(aiResponse, []);
                 
                 // NEW: Speak response if voice input was used
