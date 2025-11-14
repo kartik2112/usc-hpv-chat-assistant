@@ -1221,6 +1221,7 @@ body {
             
             // const voiceOption = currentLang === 'en' ? 'echo' : 'onyx';
             const voiceOption = 'nova'; // Use a female voice for both languages
+            const speedOption = 1.0; // Slightly slower for clarity
             
             fetch('https://usc-hpv-chat-assistant-backend.onrender.com/api/tts', {
                 method: 'POST',
@@ -1230,7 +1231,8 @@ body {
                 body: JSON.stringify({
                     text: text,
                     language: currentLang,
-                    voice: voiceOption
+                    voice: voiceOption,
+                    speed: speedOption
                 })
             })
             .then(response => {
