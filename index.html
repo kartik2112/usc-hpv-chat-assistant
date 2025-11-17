@@ -1898,10 +1898,25 @@ body {
         // });
 
         // Initialize App
+        function warmup_server() {
+            // Warm up the backend server
+            fetch('https://usc-hpv-chat-assistant-backend.onrender.com/api/health')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Backend server warmed up.');
+                    } else {
+                        console.error('Error warming up server:', response.statusText);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error warming up server:', error);
+                });
+        }
         function init() {
             initSpeechRecognition();
             updateLanguage();
             renderStarterQuestions();
+            warmup_server();
             
             // Load voices for TTS
             // if ('speechSynthesis' in window) {
