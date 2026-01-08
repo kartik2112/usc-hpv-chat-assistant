@@ -1067,6 +1067,61 @@ body {
         // const apiKeyHelp = document.getElementById('apiKeyHelp');
         const endConversationBtn = document.getElementById('endConversationBtn');
 
+        // ========== NEW EVENT TRACKING SYSTEM ==========
+        // Global event log array - tracks all user actions and events
+        let eventLog = [];
+        
+        // Function to add events to the log
+        function addEvent(eventType, eventDetails = "") {
+            const timestamp = new Date().toISOString();
+            const event = {
+                type: eventType, // Button Click, Voice Input, User Text Query, Assistant Response
+                timestamp: timestamp,
+                language: currentLang,
+                details: eventDetails
+            };
+            eventLog.push(event);
+            console.log('Event logged:', event); // For debugging
+        }
+        
+        // Function to get all events
+        function getAllEvents() {
+            return eventLog;
+        }
+
+        function getTimeDifference(timestamp1, timestamp2) {
+            // Calculate the difference in milliseconds
+            const diffMs = Math.abs(new Date(timestamp2) - new Date(timestamp1));
+            
+            // Extract time components
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const milliseconds = diffMs % 1000;
+            
+            // Format as XX:XX:XX.YY
+            const formatted = 
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0') + '.' +
+                String(Math.floor(milliseconds / 10)).padStart(2, '0');
+            
+            return formatted;
+        }
+
+        function getAllEventsLogs(){
+            const logs = getAllEvents();
+            // Format logs as needed
+            return logs.map(log => `${getTimeDifference(logs[0].timestamp, log.timestamp)} ${log.language} [${log.type}] ${log.details}`).join("\n\n");
+        }
+        
+        // Function to clear event log (called after export)
+        function clearEventLog() {
+            eventLog = [];
+        }
+        // ============================================
+
         function SeriouslyStopListening(recognition)
         {
             if (navigator.vendor.indexOf('Apple') > -1)
@@ -1088,6 +1143,7 @@ body {
                 recognition.onstart = () => {
                     isListening = true;
                     micBtn.classList.add('active', 'listening');
+                    addEvent('Voice Input', 'Started listening')
                 };
                 
                 recognition.onresult = (event) => {
@@ -1146,6 +1202,7 @@ body {
             emptyTitle.textContent = t.emptyTitle;
             emptySubtitle.textContent = t.emptySubtitle;
             langToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
+            addEvent('Button Click', "Language Toggle to " + (currentLang === 'en' ? 'Español' : 'English'));
             if (isEnlargedFont) {
                 document.querySelector('#font-toggle-text').textContent = currentLang === 'en' ? 'Reduce Text' : 'Reducir Texto';
             } else {
@@ -1222,6 +1279,8 @@ body {
             // const voiceOption = currentLang === 'en' ? 'echo' : 'onyx';
             const voiceOption = 'nova'; // Use a female voice for both languages
             const speedOption = 1.0; // Slightly slower for clarity
+
+            addEvent('Button Click', "Speak Text: " + text);
             
             fetch('https://usc-hpv-chat-assistant-backend.onrender.com/api/tts', {
                 method: 'POST',
@@ -1330,6 +1389,7 @@ body {
                 }
                 isSpeaking = false;
                 hideSpeakingIndicator();
+                addEvent('Button Click', 'Stop Speaking');
             }
         }
 
@@ -1384,6 +1444,7 @@ body {
                 return; // Avoid duplicate consecutive entries
             }
             chatHistory.push({ role: role, content: content });
+            addEvent(role == 'user' ? (wasVoiceInput ? 'User Voice Query' : 'User Text Query') : 'Assistant Response', content);
         }
 
         // NEW: Handle Suggestion Click (from starter or follow-up)
@@ -1784,12 +1845,14 @@ body {
             content += (currentLang === 'en' ? 'Date: ' : 'Fecha: ') + now.toLocaleString() + '\n';
             content += '================================\n\n';
             
-            chatHistory.forEach(msg => {
-                const roleLabel = msg.role === 'user' 
-                    ? (currentLang === 'en' ? 'User' : 'Usuario')
-                    : (currentLang === 'en' ? 'Assistant' : 'Asistente');
-                content += `${roleLabel}: ${msg.content}\n\n`;
-            });
+            content += getAllEventsLogs();
+
+            // chatHistory.forEach(msg => {
+            //     const roleLabel = msg.role === 'user' 
+            //         ? (currentLang === 'en' ? 'User' : 'Usuario')
+            //         : (currentLang === 'en' ? 'Assistant' : 'Asistente');
+            //     content += `${roleLabel}: ${msg.content}\n\n`;
+            // });
             
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1817,6 +1880,7 @@ body {
 
         fontToggle.addEventListener('click', () => {
             isEnlargedFont = !isEnlargedFont;
+            addEvent('Button Click', isEnlargedFont ? "Enlarge Text" : "Normal Text");
 
             if (isEnlargedFont) {
                 document.querySelector('#font-toggle-text').textContent = currentLang === 'en' ? 'Normal Text' : 'Reducir Texto';
