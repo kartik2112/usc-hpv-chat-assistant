@@ -1162,7 +1162,7 @@ body {
         function getAllEventsLogs(){
             const logs = getAllEvents();
             // Format logs as needed
-            all_logs = [`${logs[0].timestamp} Session Start`];
+            let all_logs = [`${logs[0].timestamp} Session Start`];
             all_logs += logs.map(log => `${getTimeDifference(logs[0].timestamp, log.timestamp)} ${log.language} [${log.type}] ${log.details}`);
             all_logs += [`${logs[logs.length - 1].timestamp} Session End`];
             return all_logs.join("\n\n");
