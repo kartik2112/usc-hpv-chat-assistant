@@ -698,6 +698,47 @@ body {
   content: '➤';
   font-size: 18px;
 }
+
+/* Back Button Container */
+#backButtonContainer {
+    animation: slideDown 0.1s ease-out;
+}
+
+#backBtn {
+    padding: var(--space-10) var(--space-16);
+    background-color: var(--color-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    transition: all var(--duration-normal) var(--ease-standard);
+}
+
+#backBtn:hover {
+    background-color: var(--color-secondary-hover);
+}
+
+#backBtn:active {
+    background-color: var(--color-secondary-active);
+}
+
+#backBtn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
     </style>
 </head>
 <body>
@@ -747,6 +788,11 @@ body {
             </div>
             
             <div id="starterQuestions" class="starter-questions"></div>
+            <div id="backButtonContainer" style="display: none; margin-bottom: 16px;">
+                <button id="backBtn" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px;">
+                    <span>← Back</span>
+                </button>
+            </div>
             
             <div id="messages" class="messages"></div>
         </main>
@@ -1066,6 +1112,9 @@ body {
         // const apiKeyLabel = document.getElementById('apiKeyLabel');
         // const apiKeyHelp = document.getElementById('apiKeyHelp');
         const endConversationBtn = document.getElementById('endConversationBtn');
+        const backButtonContainer = document.getElementById('backButtonContainer');
+        const backBtn = document.getElementById('backBtn');
+        let initialized = false;
 
         // ========== NEW EVENT TRACKING SYSTEM ==========
         // Global event log array - tracks all user actions and events
@@ -1113,7 +1162,10 @@ body {
         function getAllEventsLogs(){
             const logs = getAllEvents();
             // Format logs as needed
-            return logs.map(log => `${getTimeDifference(logs[0].timestamp, log.timestamp)} ${log.language} [${log.type}] ${log.details}`).join("\n\n");
+            all_logs = [`${logs[0].timestamp} Session Start`];
+            all_logs += logs.map(log => `${getTimeDifference(logs[0].timestamp, log.timestamp)} ${log.language} [${log.type}] ${log.details}`);
+            all_logs += [`${logs[logs.length - 1].timestamp} Session End`];
+            return all_logs.join("\n\n");
         }
         
         // Function to clear event log (called after export)
@@ -1202,7 +1254,9 @@ body {
             emptyTitle.textContent = t.emptyTitle;
             emptySubtitle.textContent = t.emptySubtitle;
             langToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
-            addEvent('Button Click', "Language Toggle to " + (currentLang === 'en' ? 'Español' : 'English'));
+            if (initialized) {
+                addEvent('Button Click', "Language Toggle to " + (currentLang === 'en' ? 'Español' : 'English'));
+            }
             if (isEnlargedFont) {
                 document.querySelector('#font-toggle-text').textContent = currentLang === 'en' ? 'Reduce Text' : 'Reducir Texto';
             } else {
@@ -1369,7 +1423,50 @@ body {
             });
         }
 
+        // Show the back button
+        function showBackButton() {
+            const backButtonContainer = document.getElementById('backButtonContainer');
+            if (backButtonContainer) {
+                backButtonContainer.style.display = 'block';
+            }
+        }
 
+        // Hide the back button
+        function hideBackButton() {
+            const backButtonContainer = document.getElementById('backButtonContainer');
+            if (backButtonContainer) {
+                backButtonContainer.style.display = 'none';
+            }
+        }
+
+        // Handle back button click - Return to starter questions
+        function handleBackButton() {
+            // Clear the chat
+            messages.innerHTML = '';
+            
+            // Reset chat history
+            chatHistory = [];
+            
+            // Stop any speech
+            stopSpeaking();
+            
+            // Show the starter questions
+            showEmptyState();
+            
+            // Hide the back button
+            hideBackButton();
+            
+            // Reset processing flag
+            isProcessing = false;
+        }
+
+        // Initialize back button listener (call this in init())
+        function initBackButton() {
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', handleBackButton);
+            }
+        }
         
         // NEW: Browser Text to Speech Stop speaking
         // function stopSpeaking() {
@@ -1444,7 +1541,7 @@ body {
                 return; // Avoid duplicate consecutive entries
             }
             chatHistory.push({ role: role, content: content });
-            addEvent(role == 'user' ? (wasVoiceInput ? 'User Voice Query' : 'User Text Query') : 'Assistant Response', content);
+            addEvent(role == 'user' ? (wasVoiceInput ? 'User Voice Query' : 'User Text Query') : (wasVoiceInput ? 'Assistant Voice Response': 'Assistant Text Response'), content);
         }
 
         // NEW: Handle Suggestion Click (from starter or follow-up)
@@ -1471,6 +1568,7 @@ body {
             }
             
             hideEmptyState();
+            showBackButton();
         }
         
         // Handle Question Click (for typed questions - always call OpenAI)
@@ -1828,6 +1926,7 @@ body {
             wasVoiceInput = false;
             stopSpeaking(); // Stop any ongoing speech
             showEmptyState();
+            hideBackButton();
         }
         
         // Export Conversation
@@ -1980,8 +2079,10 @@ body {
             initSpeechRecognition();
             updateLanguage();
             renderStarterQuestions();
+            initBackButton();
             warmup_server();
-            
+            initialized = true;
+
             // Load voices for TTS
             // if ('speechSynthesis' in window) {
             //     // Load voices
@@ -1991,7 +2092,7 @@ body {
             // }
             // OpenAI TTS is used instead of browser speechSynthesis
         }
-        init();
+        // init();
         window.addEventListener('load', () => {
             init();
         });
