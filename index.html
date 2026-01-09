@@ -1119,9 +1119,10 @@ body {
         // ========== NEW EVENT TRACKING SYSTEM ==========
         // Global event log array - tracks all user actions and events
         let eventLog = [];
+        let internalEventLog = [];
         
         // Function to add events to the log
-        function addEvent(eventType, eventDetails = "") {
+        function addEvent(eventType, eventDetails = "", eventLogArray = eventLog) {
             const timestamp = new Date().toISOString();
             const event = {
                 type: eventType, // Button Click, Voice Input, User Text Query, Assistant Response
@@ -1129,7 +1130,7 @@ body {
                 language: currentLang,
                 details: eventDetails
             };
-            eventLog.push(event);
+            eventLogArray.push(event);
             console.log('Event logged:', event); // For debugging
         }
         
@@ -1138,25 +1139,69 @@ body {
             return eventLog;
         }
 
-        function getTimeDifference(timestamp1, timestamp2) {
+        function getTotalSessionTimeInMins(){
+            if (eventLog.length === 0) return 0;
+            const sessionStart = new Date(eventLog[0].timestamp);
+            const sessionEnd = new Date(eventLog[eventLog.length - 1].timestamp);
+            return ((sessionEnd - sessionStart) / 60000).toFixed(2);
+        }
+
+        function getServerLatencyStats(){
+            if (internalEventLog.length === 0) return "Server never called for either TTS or Chat response - only suggested questions were viewed";
+            
+            let chatAPILatencies = [];
+            let ttsAPILatencies = [];
+            internalEventLog.forEach((event, index) => {
+                if (event.type === "Chat API Call Sent"){
+                    chatAPILatencies.push(event.timestamp);
+                }
+                else if (event.type === "TTS API Call Sent"){
+                    ttsAPILatencies.push(event.timestamp);
+                }
+                else if (event.type === "Chat API Response Received") {
+                    chatAPILatencies[chatAPILatencies.length - 1] = getTimeDifference(event.timestamp, chatAPILatencies[chatAPILatencies.length - 1], formattedString=false) / 1000;
+                } else if (event.type === "TTS API Response Received") {
+                    ttsAPILatencies[ttsAPILatencies.length - 1] = getTimeDifference(event.timestamp, ttsAPILatencies[ttsAPILatencies.length - 1], formattedString=false) / 1000;
+                }
+            });
+            console.log("Chat API Latencies:", chatAPILatencies);
+            console.log("TTS API Latencies:", ttsAPILatencies);
+            chatAPILatencies = chatAPILatencies.filter(x => typeof x === 'number');
+            chatAPILatency = chatAPILatencies.reduce((a, b) => a + b, 0);
+            ttsAPILatencies = ttsAPILatencies.filter(x => typeof x === 'number');
+            ttsAPILatency = ttsAPILatencies.reduce((a, b) => a + b, 0);
+            latencyLogs = `Total Server Wait Time: ${(chatAPILatency + ttsAPILatency).toFixed(2)} seconds\n` + 
+                `Chat API Latency: ${chatAPILatency.toFixed(2)} seconds\n` +
+                `TTS API Latency: ${ttsAPILatency.toFixed(2)} seconds\n` +
+                `Average Chat API Latency: ${((chatAPILatency) / chatAPILatencies.length).toFixed(2)} seconds\n` +
+                `Average TTS API Latency: ${((ttsAPILatency) / ttsAPILatencies.length).toFixed(2)} seconds\n`;
+            return latencyLogs;
+        }
+
+        function getTimeDifference(timestamp1, timestamp2, formattedString=true) {
             // Calculate the difference in milliseconds
             const diffMs = Math.abs(new Date(timestamp2) - new Date(timestamp1));
-            
-            // Extract time components
-            const totalSeconds = Math.floor(diffMs / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-            const milliseconds = diffMs % 1000;
-            
-            // Format as XX:XX:XX.YY
-            const formatted = 
-                String(hours).padStart(2, '0') + ':' +
-                String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0') + '.' +
-                String(Math.floor(milliseconds / 10)).padStart(2, '0');
-            
-            return formatted;
+
+            if (formattedString) {
+                // Extract time components
+                const totalSeconds = Math.floor(diffMs / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                const milliseconds = diffMs % 1000;
+                
+                // Format as XX:XX:XX.YY
+                const formatted = 
+                    String(hours).padStart(2, '0') + ':' +
+                    String(minutes).padStart(2, '0') + ':' +
+                    String(seconds).padStart(2, '0') + '.' +
+                    String(Math.floor(milliseconds / 10)).padStart(2, '0');
+                
+                return formatted;
+            }
+            else{
+                return diffMs; // return difference in milliseconds
+            }
         }
 
         function getAllEventsLogs(){
@@ -1164,9 +1209,9 @@ body {
             try{
                 const logs = getAllEvents();
                 // Format logs as needed
-                all_logs.push(`${logs[0].timestamp} Session Start`);
+                all_logs.push(`${new Date(logs[0].timestamp).toLocaleString()} Session Start`);
                 all_logs = all_logs.concat(logs.map(log => `${getTimeDifference(logs[0].timestamp, log.timestamp)} ${log.language} [${log.type}] ${log.details}`));
-                all_logs.push(`${logs[logs.length - 1].timestamp} Session End`);
+                all_logs.push(`${new Date(logs[logs.length - 1].timestamp).toLocaleString()} Session End`);
                 return all_logs.join("\n\n");
             } catch (error) {
                 // Code to handle the error
@@ -1333,7 +1378,9 @@ body {
             if (isSpeaking) {
                 stopSpeaking();
             }
-            
+
+            addEvent("TTS API Call Sent", text, internalEventLog);
+
             // Call OpenAI TTS API through backend
             isSpeaking = true;
             showSpeakingIndicator();
@@ -1423,6 +1470,7 @@ body {
                     URL.revokeObjectURL(audioUrl);
                     currentAudioContext = null;
                 });
+                addEvent("TTS API Response Received", "Audio Binary Received", internalEventLog);
             })
             .catch(error => {
                 console.error('TTS API error:', error);
@@ -1587,7 +1635,7 @@ body {
             
             // For typed questions, always call OpenAI (no similarity matching)
             // if (apiKey) {
-            await callOpenAI(question);
+            await callChatOpenAI(question);
             // } 
             // else {
             //     const noKeyMsg = translations[currentLang].noApiKey;
@@ -1715,7 +1763,7 @@ body {
 
         // Add Assistant Message
         function addAssistantMessage(text, followups = []) {
-            // Don't add to chatHistory here - already added in handleSuggestionClick or callOpenAI
+            // Don't add to chatHistory here - already added in handleSuggestionClick or callChatOpenAI
 
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message assistant';
@@ -1796,10 +1844,11 @@ body {
         }
 
         // Call OpenAI API
-        async function callOpenAI(userQuestion) {
+        async function callChatOpenAI(userQuestion) {
             if (isProcessing) return;
             isProcessing = true;
-            
+            addEvent("Chat API Call Sent", userQuestion, internalEventLog);
+
             // Add typing indicator
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message assistant';
@@ -1857,7 +1906,7 @@ body {
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     console.error('OpenAI API Error:', errorData);
-                    addAssistantMessage(translations[currentLang].apiError, []);
+                    // addAssistantMessage(translations[currentLang].apiError, []);
                     isProcessing = false;
                     return;
                 }
@@ -1870,6 +1919,8 @@ body {
                 add_message_to_chat_history('assistant', aiResponse);
 
                 addAssistantMessage(aiResponse, []);
+
+                addEvent("Chat API Response Received", aiResponse, internalEventLog);
                 
                 // NEW: Speak response if voice input was used
                 if (wasVoiceInput) {
@@ -1954,6 +2005,10 @@ body {
             
             content += getAllEventsLogs();
 
+            content += `\n\nTotal Session Time: ${getTotalSessionTimeInMins()} mins\n\n`
+
+            content += getServerLatencyStats();
+
             // chatHistory.forEach(msg => {
             //     const roleLabel = msg.role === 'user' 
             //         ? (currentLang === 'en' ? 'User' : 'Usuario')
@@ -1968,7 +2023,9 @@ body {
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
-            
+
+            console.log("Internal Log:", internalEventLog);
+
             // Ask if user wants to clear conversation
             setTimeout(() => {
                 const clearMsg = currentLang === 'en' 
