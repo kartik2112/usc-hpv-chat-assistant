@@ -1988,7 +1988,7 @@ body {
         // Export Conversation
         function exportConversation() {
             if (chatHistory.length === 0) {
-                alert(currentLang === 'en' ? 'No conversation to export yet.' : 'Aún no hay conversación para exportar.');
+                alert('No conversation to export yet.');
                 return;
             }
             
@@ -1996,8 +1996,8 @@ body {
             const dateStr = now.toISOString().slice(0, 19).replace(/[T:]/g, '-');
             const filename = `hpv-conversation-${dateStr}.txt`;
             
-            let content = currentLang === 'en' ? 'HPV Health Assistant Conversation\n' : 'Conversación del Asistente de Salud sobre VPH\n';
-            content += (currentLang === 'en' ? 'Date: ' : 'Fecha: ') + now.toLocaleString() + '\n';
+            let content = 'HPV Health Assistant Conversation\n';
+            content += 'Date: ' + now.toLocaleString() + '\n';
             content += '================================\n\n';
             
             content += getAllEventsLogs();
@@ -2025,9 +2025,7 @@ body {
 
             // Ask if user wants to clear conversation
             setTimeout(() => {
-                const clearMsg = currentLang === 'en' 
-                    ? 'Conversation exported! Would you like to start a new conversation?'
-                    : '¡Conversación exportada! ¿Le gustaría comenzar una nueva conversación?';
+                const clearMsg = 'Conversation exported! Would you like to start a new conversation?'
                 if (confirm(clearMsg)) {
                     startOver();
                 }
