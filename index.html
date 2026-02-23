@@ -739,6 +739,120 @@ body {
         transform: translateY(0);
     }
 }
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-standard);
+}
+
+.modal-overlay.show {
+  opacity: 1;
+}
+
+.modal-content {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-24);
+  max-width: 500px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.95);
+  transition: transform var(--duration-normal) var(--ease-standard);
+}
+
+.modal-overlay.show .modal-content {
+  transform: scale(1);
+}
+
+.modal-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-16);
+}
+
+.modal-body {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-24);
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-12);
+  justify-content: flex-end;
+}
+
+/* Feedback Form Styles */
+.feedback-group {
+  margin-bottom: var(--space-20);
+}
+
+.feedback-label {
+  display: block;
+  margin-bottom: var(--space-8);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.feedback-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  resize: vertical;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.feedback-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.rating-group {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+
+.rating-btn {
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.rating-btn:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.rating-btn.selected {
+  background-color: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border-color: var(--color-primary);
+}
     </style>
 </head>
 <body>
@@ -886,6 +1000,58 @@ body {
                 Please consult with a healthcare provider for personalized guidance.
             </p>
         </footer>
+
+        <!-- End Conversation Confirmation Modal -->
+        <div id="endConversationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="modal-title" id="endModalTitle">End Conversation?</h2>
+            <p class="modal-body" id="endModalBody">
+            Your conversation will be exported and the chat will be cleared. Do you want to continue?
+            </p>
+            <div class="modal-actions">
+            <button class="btn" id="cancelEndBtn">Cancel</button>
+            <button class="btn btn-primary" id="confirmEndBtn">Yes, End Conversation</button>
+            </div>
+        </div>
+        </div>
+
+        <!-- Feedback Modal -->
+        <div id="feedbackModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="modal-title" id="feedbackModalTitle">Thank you for using HPV Health Assistant!</h2>
+            <p class="modal-body" id="feedbackModalIntro">
+            We'd love to hear your feedback to improve this tool.
+            </p>
+            
+            <div class="feedback-group">
+            <label class="feedback-label" id="ratingLabel">How would you rate your experience?</label>
+            <div class="rating-group">
+                <button class="rating-btn" data-rating="1">😞 Poor</button>
+                <button class="rating-btn" data-rating="2">😐 Fair</button>
+                <button class="rating-btn" data-rating="3">🙂 Good</button>
+                <button class="rating-btn" data-rating="4">😄 Great</button>
+                <button class="rating-btn" data-rating="5">🤩 Excellent</button>
+            </div>
+            </div>
+            
+            <div class="feedback-group">
+            <label class="feedback-label" for="feedbackText" id="feedbackTextLabel">
+                Any comments or suggestions? (Optional)
+            </label>
+            <textarea 
+                id="feedbackText" 
+                class="feedback-textarea" 
+                placeholder="Tell us what you think...">
+            </textarea>
+            </div>
+            
+            <div class="modal-actions">
+            <button class="btn" id="skipFeedbackBtn">Skip</button>
+            <button class="btn btn-primary" id="submitFeedbackBtn">Submit Feedback</button>
+            </div>
+        </div>
+        </div>
+
     </div>
 
     <script>
@@ -1102,7 +1268,27 @@ body {
                 apiError: 'Error connecting to OpenAI. Please check your API key and try again.',
                 noSpeech: 'No speech detected. Please try again.',
                 notSupported: 'Voice input is not supported in your browser. Please use Chrome or Edge.',
-                noPermission: 'Microphone permission denied. Please allow microphone access.'
+                noPermission: 'Microphone permission denied. Please allow microphone access.',
+                endModalTitle: 'End Conversation?',
+                endModalBody: 'Your conversation will be exported and the chat will be cleared. Do you want to continue?',
+                cancelBtn: 'Cancel',
+                confirmEndBtn: 'Yes, End Conversation',
+                feedbackModalTitle: 'Thank you for using HPV Health Assistant!',
+                feedbackModalIntro: "We'd love to hear your feedback to improve this tool.",
+                ratingLabel: 'How would you rate your experience?',
+                ratingButtons: [
+                    '😞 Poor',
+                    '😐 Fair', 
+                    '🙂 Good',
+                    '😄 Great',
+                    '🤩 Excellent'
+                ],
+                feedbackTextLabel: 'Any comments or suggestions? (Optional)',
+                feedbackPlaceholder: 'Tell us what you think...',
+                skipBtn: 'Skip',
+                submitFeedbackBtn: 'Submit Feedback',
+                thankYouMessage: 'Thank you for your feedback!',
+                noConversationToExport: 'No conversation to export yet.'
             },
             es: {
                 title: 'Asistente de Salud sobre VPH',
@@ -1127,7 +1313,27 @@ body {
                 apiError: 'Error al conectar con OpenAI. Verifique su clave API e intente nuevamente.',
                 noSpeech: 'No se detectó voz. Por favor, inténtelo de nuevo.',
                 notSupported: 'La entrada de voz no es compatible con su navegador. Utilice Chrome o Edge.',
-                noPermission: 'Permiso de micrófono denegado. Permita el acceso al micrófono.'
+                noPermission: 'Permiso de micrófono denegado. Permita el acceso al micrófono.',
+                endModalTitle: '¿Finalizar conversación?',
+                endModalBody: 'Su conversación será exportada y el chat será borrado. ¿Desea continuar?',
+                cancelBtn: 'Cancelar',
+                confirmEndBtn: 'Sí, finalizar conversación',
+                feedbackModalTitle: '¡Gracias por usar el Asistente de Salud sobre VPH!',
+                feedbackModalIntro: 'Nos encantaría escuchar sus comentarios para mejorar esta herramienta.',
+                ratingLabel: '¿Cómo calificaría su experiencia?',
+                ratingButtons: [
+                    '😞 Malo',
+                    '😐 Regular',
+                    '🙂 Bueno',
+                    '😄 Muy bueno',
+                    '🤩 Excelente'
+                ],
+                feedbackTextLabel: '¿Algún comentario o sugerencia? (Opcional)',
+                feedbackPlaceholder: 'Díganos qué piensa...',
+                skipBtn: 'Omitir',
+                submitFeedbackBtn: 'Enviar comentarios',
+                thankYouMessage: '¡Gracias por tus comentarios!',
+                noConversationToExport: 'Aún no hay conversación para exportar.'
             }
         };
 
@@ -1179,6 +1385,28 @@ body {
         const endConversationBtn = document.getElementById('endConversationBtn');
         const backButtonContainer = document.getElementById('backButtonContainer');
         const backBtn = document.getElementById('backBtn');
+        const endConversationModal = document.getElementById('endConversationModal');
+        const cancelEndBtn = document.getElementById('cancelEndBtn');
+        const confirmEndBtn = document.getElementById('confirmEndBtn');
+        const feedbackModal = document.getElementById('feedbackModal');
+        const skipFeedbackBtn = document.getElementById('skipFeedbackBtn');
+        const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
+        const feedbackText = document.getElementById('feedbackText');
+        const ratingBtns = document.querySelectorAll('.rating-btn');
+        // Modal text elements for translation
+        const endModalTitle = document.getElementById('endModalTitle');
+        const endModalBody = document.getElementById('endModalBody');
+        const cancelEndBtnText = document.getElementById('cancelEndBtn');
+        const confirmEndBtnText = document.getElementById('confirmEndBtn');
+        const feedbackModalTitle = document.getElementById('feedbackModalTitle');
+        const feedbackModalIntro = document.getElementById('feedbackModalIntro');
+        const ratingLabel = document.getElementById('ratingLabel');
+        const feedbackTextLabel = document.getElementById('feedbackTextLabel');
+        const feedbackTextArea = document.getElementById('feedbackText');
+        const skipFeedbackBtnText = document.getElementById('skipFeedbackBtn');
+        const submitFeedbackBtnText = document.getElementById('submitFeedbackBtn');
+
+
         let initialized = false;
 
         // ========== NEW EVENT TRACKING SYSTEM ==========
@@ -1381,6 +1609,7 @@ body {
             if (initialized) {
                 addEvent('Button Click', "Language Toggle to " + (currentLang === 'en' ? 'Español' : 'English'));
             }
+            updateModalTranslations();
             if (isEnlargedFont) {
                 document.querySelector('#font-toggle-text').textContent = currentLang === 'en' ? 'Reduce Text' : 'Reducir Texto';
             } else {
@@ -1398,6 +1627,38 @@ body {
                 recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
             }
         }
+
+        function updateModalTranslations() {
+            const t = translations[currentLang];
+            
+            // End Conversation Modal
+            endModalTitle.textContent = t.endModalTitle;
+            endModalBody.textContent = t.endModalBody;
+            cancelEndBtnText.textContent = t.cancelBtn;
+            confirmEndBtnText.textContent = t.confirmEndBtn;
+            
+            // Feedback Modal
+            feedbackModalTitle.textContent = t.feedbackModalTitle;
+            feedbackModalIntro.textContent = t.feedbackModalIntro;
+            ratingLabel.textContent = t.ratingLabel;
+            feedbackTextLabel.textContent = t.feedbackTextLabel;
+            feedbackTextArea.placeholder = t.feedbackPlaceholder;
+            skipFeedbackBtnText.textContent = t.skipBtn;
+            submitFeedbackBtnText.textContent = t.submitFeedbackBtn;
+            
+            // Update rating buttons with translated text
+            const ratingButtons = document.querySelectorAll('.rating-btn');
+            const ratingTexts = t.ratingButtons || [
+                '😞 Poor', '😐 Fair', '🙂 Good', '😄 Great', '🤩 Excellent'
+            ];
+            
+            ratingButtons.forEach((btn, index) => {
+                if (ratingTexts[index]) {
+                    btn.textContent = ratingTexts[index];
+                }
+            });
+        }
+
 
         // NEW: Browser Text-to-Speech Function
         // function speakText(text) {
@@ -1670,6 +1931,103 @@ body {
             chatHistory.push({ role: role, content: content });
             addEvent(role == 'user' ? (wasVoiceInput ? 'User Voice Query' : 'User Text Query') : (wasVoiceInput ? 'Assistant Voice Response': 'Assistant Text Response'), content);
         }
+
+        // Modal Management Functions
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+            setTimeout(() => {
+                modalElement.classList.add('show');
+            }, 10);
+        }
+
+        function hideModal(modalElement) {
+            modalElement.classList.remove('show');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+            }, 250);
+        }
+
+        // End Conversation with Confirmation
+        function showEndConversationModal() {
+            if (chatHistory.length === 0) {
+                const t = translations[currentLang];
+                alert(t.noConversationToExport);
+                return;
+            }
+            
+            addEvent('Button Click', 'End Conversation Button Clicked');
+            showModal(endConversationModal);
+        }
+
+        function confirmEndConversation() {
+            hideModal(endConversationModal);
+            // Moved export to after feedback was skipped or added
+            // exportConversation();
+            
+            // Show feedback modal after a brief delay
+            setTimeout(() => {
+                showFeedbackModal();
+            }, 500);
+        }
+
+        function cancelEndConversation() {
+            addEvent('Button Click', 'End Conversation Cancelled');
+            hideModal(endConversationModal);
+        }
+
+        // Feedback Modal
+        let selectedRating = null;
+
+        function showFeedbackModal() {
+            // Reset feedback form
+            selectedRating = null;
+            feedbackText.value = '';
+            ratingBtns.forEach(btn => btn.classList.remove('selected'));
+            
+            showModal(feedbackModal);
+        }
+
+        function submitFeedback() {
+            const t = translations[currentLang];
+            // const feedback = {
+            //     rating: selectedRating,
+            //     comments: feedbackText.value.trim(),
+            //     timestamp: new Date().toISOString(),
+            //     language: currentLang,
+            //     sessionTime: getTotalSessionTimeInMins()
+            // };
+            
+            feedbackTextVal = feedbackText.value.trim();
+            if (feedbackTextVal != ""){
+                addEvent('Text Feedback Submitted', feedbackTextVal);
+                console.log('Text Feedback submitted:', feedbackTextVal);
+            }
+
+            exportConversation();
+            
+            // Here you can send feedback to your backend if needed
+            // fetch(`${BACKEND_DOMAIN}/api/feedback`, { ... })
+            
+            hideModal(feedbackModal);
+            
+            // Show thank you message
+            setTimeout(() => {
+                // alert(t.thankYouMessage);
+                startOver();
+            }, 300);
+        }
+
+        function skipFeedback() {
+            addEvent('Button Click', 'Feedback Skipped');
+            hideModal(feedbackModal);
+
+            exportConversation();
+            
+            setTimeout(() => {
+                startOver();
+            }, 300);
+        }
+
 
         // NEW: Handle Suggestion Click (from starter or follow-up)
         async function handleSuggestionClick(suggestion) {
@@ -2052,6 +2410,8 @@ body {
         // Start Over
         function startOver() {
             chatHistory = [];
+            eventLog = [];
+            internalEventLog = [];
             messages.innerHTML = '';
             wasVoiceInput = false;
             stopSpeaking(); // Stop any ongoing speech
@@ -2097,13 +2457,15 @@ body {
 
             console.log("Internal Log:", internalEventLog);
 
+            startOver();
+
             // Ask if user wants to clear conversation
-            setTimeout(() => {
-                const clearMsg = 'Conversation exported! Would you like to start a new conversation?'
-                if (confirm(clearMsg)) {
-                    startOver();
-                }
-            }, 500);
+            // setTimeout(() => {
+            //     const clearMsg = 'Conversation exported! Would you like to start a new conversation?'
+            //     if (confirm(clearMsg)) {
+            //         startOver();
+            //     }
+            // }, 500);
         }
 
         // Event Listeners
@@ -2149,7 +2511,41 @@ body {
 
         startOverBtn.addEventListener('click', startOver);
         
-        endConversationBtn.addEventListener('click', exportConversation);
+        // endConversationBtn.addEventListener('click', exportConversation);
+
+        endConversationBtn.addEventListener('click', showEndConversationModal);
+
+        // End Conversation Modal Listeners
+        cancelEndBtn.addEventListener('click', cancelEndConversation);
+        confirmEndBtn.addEventListener('click', confirmEndConversation);
+
+        // Feedback Modal Listeners
+        skipFeedbackBtn.addEventListener('click', skipFeedback);
+        submitFeedbackBtn.addEventListener('click', submitFeedback);
+
+        // Rating button listeners
+        ratingBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                ratingBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedRating = btn.getAttribute('data-rating');
+                addEvent('Rating Selected', "Rating: " + selectedRating + "/5 (5 is highest)");
+            });
+        });
+
+        // Close modal when clicking outside
+        endConversationModal.addEventListener('click', (e) => {
+        if (e.target === endConversationModal) {
+            cancelEndConversation();
+        }
+        });
+
+        feedbackModal.addEventListener('click', (e) => {
+        if (e.target === feedbackModal) {
+            skipFeedback();
+        }
+        });
+
 
         sendBtn.addEventListener('click', handleSendMessage);
 
@@ -2213,6 +2609,7 @@ body {
             acceptBtn.focus();
             initSpeechRecognition();
             updateLanguage();
+            updateModalTranslations();
             renderStarterQuestions();
             initBackButton();
             warmup_server();
