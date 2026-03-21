@@ -2418,7 +2418,8 @@ body {
                 // Show backend PHI warning if detected (secondary safety net)
                 if (data.phi_warning) {
                     addEvent('PHI Warning (Backend)', 'Types: ' + (data.phi_types || []).join(', '));
-                    showBackendPHIWarning();
+                    const backendDetections = (data.phi_types || []).map(t => ({ type: t, label: t }));
+                    showPHIWarning(backendDetections);
                 }
 
                 // NEW: Speak response if voice input was used
