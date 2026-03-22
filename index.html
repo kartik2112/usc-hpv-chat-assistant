@@ -2143,45 +2143,28 @@ body {
             showModal(feedbackModal);
         }
 
-        function submitFeedback() {
-            const t = translations[currentLang];
-            // const feedback = {
-            //     rating: selectedRating,
-            //     comments: feedbackText.value.trim(),
-            //     timestamp: new Date().toISOString(),
-            //     language: currentLang,
-            //     sessionTime: getTotalSessionTimeInMins()
-            // };
-            
+        async function submitFeedback() {
             feedbackTextVal = feedbackText.value.trim();
-            if (feedbackTextVal != ""){
+            if (feedbackTextVal != "") {
                 addEvent('Text Feedback Submitted', feedbackTextVal);
                 console.log('Text Feedback submitted:', feedbackTextVal);
             }
 
-            exportConversation();
-            
             // Here you can send feedback to your backend if needed
             // fetch(`${BACKEND_DOMAIN}/api/feedback`, { ... })
-            
+
             hideModal(feedbackModal);
-            
-            // Show thank you message
-            setTimeout(() => {
-                // alert(t.thankYouMessage);
-                startOver();
-            }, 300);
+            // endSession() is called inside startOver() — it saves all messages,
+            // events, and the LLM summary to the backend before resetting the UI.
+            await startOver();
         }
 
-        function skipFeedback() {
+        async function skipFeedback() {
             addEvent('Button Click', 'Feedback Skipped');
             hideModal(feedbackModal);
-
-            exportConversation();
-            
-            setTimeout(() => {
-                startOver();
-            }, 300);
+            // endSession() is called inside startOver() — it saves all messages,
+            // events, and the LLM summary to the backend before resetting the UI.
+            await startOver();
         }
 
 
@@ -2644,46 +2627,14 @@ body {
             await initSession();         // Begin a brand-new server session
         }
         
-        // Export Conversation
+        // Export Conversation — logging utility only.
+        // The actual .txt save happens server-side via endSession() inside startOver().
+        // This function must NOT call startOver() itself — callers handle that.
         function exportConversation() {
-            if (chatHistory.length === 0) {
-                alert('No conversation to export yet.');
-                return;
-            }
-            
-            const now = new Date();
-            const dateStr = now.toISOString().slice(0, 19).replace(/[T:]/g, '-');
-            const filename = `hpv-conversation-${dateStr}.txt`;
-            
-            let content = 'HPV Health Assistant Conversation\n';
-            content += 'Date: ' + now.toLocaleString() + '\n';
-            content += '================================\n\n';
-            
-            content += getAllEventsLogs();
-
-            content += `\n\nTotal Session Time: ${getTotalSessionTimeInMins()} mins\n\n`
-
-            content += getServerLatencyStats();
-
-            // chatHistory.forEach(msg => {
-            //     const roleLabel = msg.role === 'user' 
-            //         ? (currentLang === 'en' ? 'User' : 'Usuario')
-            //         : (currentLang === 'en' ? 'Assistant' : 'Asistente');
-            //     content += `${roleLabel}: ${msg.content}\n\n`;
-            // });
-            
-            // Log locally for debugging; the .txt is saved server-side by endSession()
+            if (chatHistory.length === 0) return;
+            // Log locally for debugging
+            console.log("Event log:", getAllEventsLogs());
             console.log("Internal Log:", internalEventLog);
-
-            startOver();
-
-            // Ask if user wants to clear conversation
-            // setTimeout(() => {
-            //     const clearMsg = 'Conversation exported! Would you like to start a new conversation?'
-            //     if (confirm(clearMsg)) {
-            //         startOver();
-            //     }
-            // }, 500);
         }
 
         // Event Listeners
