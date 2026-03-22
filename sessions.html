@@ -629,9 +629,119 @@
             .detail-panel { display: none; }
             .detail-panel.show { display: flex; }
         }
+
+        /* ── Password Gate Modal ─────────────────────────────────────────── */
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(19, 52, 59, 0.72);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-overlay.hidden { display: none; }
+        .auth-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.18);
+            padding: var(--space-32);
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-20);
+        }
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-12);
+        }
+        .auth-logo-icon { font-size: 32px; }
+        .auth-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text);
+        }
+        .auth-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            line-height: 1.5;
+        }
+        .auth-field { display: flex; flex-direction: column; gap: var(--space-6); }
+        .auth-label {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text);
+        }
+        .auth-input {
+            font-family: var(--font-family-base);
+            font-size: var(--font-size-base);
+            padding: var(--space-10) var(--space-12);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background: var(--color-background);
+            color: var(--color-text);
+            outline: none;
+            transition: border-color var(--duration-fast);
+            width: 100%;
+        }
+        .auth-input:focus { border-color: var(--color-primary); }
+        .auth-submit {
+            width: 100%;
+            padding: var(--space-12);
+            background: var(--color-primary);
+            color: var(--color-usc-gold);
+            border: none;
+            border-radius: var(--radius-base);
+            font-family: var(--font-family-base);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: background var(--duration-fast) var(--ease-standard);
+        }
+        .auth-submit:hover { background: var(--color-primary-hover); }
+        .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .auth-error {
+            font-size: var(--font-size-sm);
+            color: var(--color-primary);
+            background: rgba(153,27,30,0.06);
+            border: 1px solid rgba(153,27,30,0.2);
+            border-radius: var(--radius-base);
+            padding: var(--space-8) var(--space-12);
+            display: none;
+        }
+        .auth-error.show { display: block; }
     </style>
 </head>
 <body>
+
+<!-- ── Password Gate ────────────────────────────────────────────────────────── -->
+<div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <span class="auth-logo-icon">🔒</span>
+            <div>
+                <div class="auth-title">Provider Access</div>
+                <div class="auth-subtitle">HPV Health Assistant — Session Dashboard</div>
+            </div>
+        </div>
+        <p class="auth-subtitle">
+            This dashboard is restricted to authorized providers only.
+            Enter your access password to continue.
+        </p>
+        <div class="auth-field">
+            <label class="auth-label" for="authPassword">Password</label>
+            <input class="auth-input" type="password" id="authPassword"
+                   placeholder="Enter access password" autocomplete="current-password">
+        </div>
+        <div class="auth-error" id="authError"></div>
+        <button class="auth-submit" id="authSubmit">Unlock Dashboard</button>
+    </div>
+</div>
 
 <!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <header class="header">
@@ -764,6 +874,93 @@
             ? 'https://sackend.isi.edu/chathpv/bot/backend'
             : 'https://usc-hpv-chat-assistant-backend.onrender.com';
 
+    // ── Auth ───────────────────────────────────────────────────────────────────
+    const TOKEN_KEY = 'sessions_dashboard_token';
+
+    /** Return the stored token if it exists and hasn't expired client-side. */
+    function getStoredToken() {
+        const token = sessionStorage.getItem(TOKEN_KEY);
+        if (!token) return null;
+        try {
+            const expiry = parseInt(token.split('.')[0], 10);
+            if (expiry * 1000 < Date.now()) {           // expired
+                sessionStorage.removeItem(TOKEN_KEY);
+                return null;
+            }
+            return token;
+        } catch { return null; }
+    }
+
+    function storeToken(token) { sessionStorage.setItem(TOKEN_KEY, token); }
+    function clearToken()      { sessionStorage.removeItem(TOKEN_KEY); }
+
+    /** Authorised fetch — injects the Bearer token into every request. */
+    async function authFetch(url, opts = {}) {
+        const token = getStoredToken();
+        const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const resp = await fetch(url, { ...opts, headers });
+        if (resp.status === 401) {
+            clearToken();
+            showAuthOverlay();
+            throw new Error('Session expired — please re-authenticate.');
+        }
+        return resp;
+    }
+
+    // ── Password Modal ─────────────────────────────────────────────────────────
+    const authOverlay  = document.getElementById('authOverlay');
+    const authPassword = document.getElementById('authPassword');
+    const authSubmit   = document.getElementById('authSubmit');
+    const authError    = document.getElementById('authError');
+
+    function showAuthOverlay() {
+        authOverlay.classList.remove('hidden');
+        authPassword.value = '';
+        authError.classList.remove('show');
+        authError.textContent = '';
+        setTimeout(() => authPassword.focus(), 50);
+    }
+    function hideAuthOverlay() { authOverlay.classList.add('hidden'); }
+
+    async function submitPassword() {
+        const pw = authPassword.value;
+        if (!pw) return;
+        authSubmit.disabled = true;
+        authSubmit.textContent = 'Verifying…';
+        authError.classList.remove('show');
+        try {
+            const resp = await fetch(BACKEND + '/api/sessions/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pw })
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                storeToken(data.token);
+                hideAuthOverlay();
+                loadSessions();             // now load the actual data
+            } else {
+                const remaining = data.attempts_remaining != null
+                    ? ` (${data.attempts_remaining} attempt${data.attempts_remaining !== 1 ? 's' : ''} remaining)`
+                    : '';
+                authError.textContent = (data.error || 'Authentication failed.') + remaining;
+                authError.classList.add('show');
+                authPassword.value = '';
+                authPassword.focus();
+            }
+        } catch (e) {
+            authError.textContent = 'Could not reach server. Please try again.';
+            authError.classList.add('show');
+        } finally {
+            authSubmit.disabled = false;
+            authSubmit.textContent = 'Unlock Dashboard';
+        }
+    }
+
+    authSubmit.addEventListener('click', submitPassword);
+    authPassword.addEventListener('keydown', e => { if (e.key === 'Enter') submitPassword(); });
+
     // ── State ──────────────────────────────────────────────────────────────────
     let allSessions = [];
     let activeFilename = null;
@@ -835,7 +1032,7 @@
         document.getElementById('sessionList').innerHTML = `
             <div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
         try {
-            const resp = await fetch(BACKEND + '/api/sessions');
+            const resp = await authFetch(BACKEND + '/api/sessions');
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
             allSessions = data.sessions || [];
@@ -904,7 +1101,7 @@
         content.style.display = 'none';
 
         try {
-            const resp = await fetch(BACKEND + '/api/sessions/' + encodeURIComponent(filename));
+            const resp = await authFetch(BACKEND + '/api/sessions/' + encodeURIComponent(filename));
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const session = await resp.json();
             renderDetail(session);
@@ -1046,7 +1243,14 @@
     });
 
     // ── Boot ───────────────────────────────────────────────────────────────────
-    loadSessions();
+    // Show the password gate immediately. If a valid token is already in
+    // sessionStorage, skip the modal and load sessions directly.
+    if (getStoredToken()) {
+        hideAuthOverlay();
+        loadSessions();
+    } else {
+        showAuthOverlay();   // modal stays up until correct password is entered
+    }
 </script>
 </body>
 </html>
