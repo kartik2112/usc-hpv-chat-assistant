@@ -1470,7 +1470,12 @@ body {
         // Global event log array - tracks all user actions and events
         let eventLog = [];
         let internalEventLog = [];
-        
+
+        // ========== SESSION MANAGEMENT STATE ==========
+        let sessionId = null;
+        let inactivityTimer = null;
+        const SESSION_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+
         // Function to add events to the log
         function addEvent(eventType, eventDetails = "", eventLogArray = eventLog) {
             const timestamp = new Date().toISOString();
@@ -1482,6 +1487,18 @@ body {
             };
             eventLogArray.push(event);
             console.log('Event logged:', event); // For debugging
+
+            // Sync main events (not internal API events) to server session — fire-and-forget
+            if (sessionId && eventLogArray === eventLog) {
+                fetch(BACKEND_DOMAIN + '/api/session/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, event: event })
+                }).catch(() => {});
+            }
+
+            // Any logged event counts as activity — reset inactivity timer
+            resetInactivityTimer();
         }
         
         // Function to get all events
@@ -1552,6 +1569,80 @@ body {
             else{
                 return diffMs; // return difference in milliseconds
             }
+        }
+
+        // ========== SESSION MANAGEMENT FUNCTIONS ==========
+
+        async function initSession() {
+            try {
+                const resp = await fetch(BACKEND_DOMAIN + '/api/session/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json();
+                sessionId = data.session_id;
+                console.log('Session started:', sessionId);
+                resetInactivityTimer();
+            } catch (e) {
+                console.warn('Session init failed — continuing without server session tracking.');
+            }
+        }
+
+        async function endSession() {
+            if (!sessionId) return null;
+            clearTimeout(inactivityTimer);
+            const sid = sessionId;
+            sessionId = null; // Nullify early so concurrent calls are no-ops
+            try {
+                const resp = await fetch(BACKEND_DOMAIN + '/api/session/end', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sid, messages: chatHistory })
+                });
+                const data = await resp.json();
+                return data.summary || null;
+            } catch (e) {
+                console.warn('Session end failed.');
+                return null;
+            }
+        }
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(handleSessionTimeout, SESSION_TIMEOUT_MS);
+        }
+
+        async function handleSessionTimeout() {
+            console.log('Session timed out due to inactivity.');
+            showToastNotification(
+                'This session has ended due to inactivity. Starting fresh for the next patient.'
+            );
+            await startOver();
+        }
+
+        function showToastNotification(msg) {
+            const toast = document.createElement('div');
+            toast.style.cssText = [
+                'position:fixed', 'top:24px', 'left:50%', 'transform:translateX(-50%)',
+                'background:#1a1a2e', 'color:#fff', 'padding:14px 24px', 'border-radius:10px',
+                'z-index:9999', 'font-size:14px', 'max-width:88%', 'text-align:center',
+                'box-shadow:0 4px 20px rgba(0,0,0,0.35)', 'transition:opacity 0.5s'
+            ].join(';');
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 6000);
+        }
+
+        function syncMessagesToSession() {
+            if (!sessionId) return;
+            fetch(BACKEND_DOMAIN + '/api/session/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId, messages: chatHistory })
+            }).catch(() => {});
         }
 
         function getAllEventsLogs(){
@@ -2105,6 +2196,7 @@ body {
             // Add to chat history for OpenAI context
             add_message_to_chat_history('user', question);
             add_message_to_chat_history('assistant', answer);
+            syncMessagesToSession(); // Push updated messages to server session
 
             addAssistantMessage(answer, followups);
             
@@ -2410,6 +2502,7 @@ body {
                 
                 // Add to chat history
                 add_message_to_chat_history('assistant', aiResponse);
+                syncMessagesToSession(); // Push updated messages to server session
 
                 addAssistantMessage(aiResponse, []);
 
@@ -2528,8 +2621,9 @@ body {
             }, 8000);
         }
 
-        // Start Over
-        function startOver() {
+        // Start Over — saves session to server, resets UI, opens fresh session
+        async function startOver() {
+            await endSession();          // Save logs + generate summary on server; no-op if no session
             chatHistory = [];
             eventLog = [];
             internalEventLog = [];
@@ -2538,6 +2632,7 @@ body {
             stopSpeaking(); // Stop any ongoing speech
             showEmptyState();
             hideBackButton();
+            await initSession();         // Begin a brand-new server session
         }
         
         // Export Conversation
@@ -2744,6 +2839,13 @@ body {
             renderStarterQuestions();
             initBackButton();
             warmup_server();
+            initSession(); // Start server-side session for this device
+
+            // Any device activity resets the 2-minute inactivity timer
+            ['mousemove', 'keydown', 'touchstart', 'click', 'scroll'].forEach(evt => {
+                document.addEventListener(evt, resetInactivityTimer, { passive: true });
+            });
+
             initialized = true;
 
             // Load voices for TTS
