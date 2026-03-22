@@ -1580,6 +1580,11 @@ body {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
+                if (resp.status === 404) {
+                    // Server has no record of this session — treat as expired
+                    await handleServerSessionGone();
+                    return;
+                }
                 const data = await resp.json();
                 sessionId = data.session_id;
                 console.log('Session started:', sessionId);
@@ -1587,6 +1592,20 @@ body {
             } catch (e) {
                 console.warn('Session init failed — continuing without server session tracking.');
             }
+        }
+
+        // Called whenever the server returns 404 for any session-related request,
+        // meaning the backend has dropped/expired the session.  Resets UI and
+        // forces the next patient to go through the disclaimer before chatting.
+        async function handleServerSessionGone() {
+            console.warn('Server session gone (404) — resetting for next patient.');
+            showToastNotification(
+                'This session has expired. Please review the disclaimer to start a new session.'
+            );
+            sessionId = null;
+            clearTimeout(inactivityTimer);
+            await startOver();
+            showDisclaimer();
         }
 
         async function endSession() {
@@ -1627,8 +1646,7 @@ body {
                 'This session has ended due to inactivity. Starting fresh for the next patient.'
             );
             await startOver();
-            // Re-show the disclaimer so the next patient must accept it before chatting.
-            overlay.style.display = 'flex';
+            showDisclaimer(); // Next patient must accept before a new session begins
         }
 
         function showToastNotification(msg) {
@@ -2163,17 +2181,15 @@ body {
             // fetch(`${BACKEND_DOMAIN}/api/feedback`, { ... })
 
             hideModal(feedbackModal);
-            // endSession() is called inside startOver() — it saves all messages,
-            // events, and the LLM summary to the backend before resetting the UI.
             await startOver();
+            showDisclaimer(); // Next patient must accept disclaimer before a new session begins
         }
 
         async function skipFeedback() {
             addEvent('Button Click', 'Feedback Skipped');
             hideModal(feedbackModal);
-            // endSession() is called inside startOver() — it saves all messages,
-            // events, and the LLM summary to the backend before resetting the UI.
             await startOver();
+            showDisclaimer(); // Next patient must accept disclaimer before a new session begins
         }
 
 
@@ -2483,6 +2499,13 @@ body {
                     typingIndicator.remove();
                 }
                 
+                if (response.status === 404) {
+                    // Backend has no record of this session — it was dropped or restarted.
+                    isProcessing = false;
+                    await handleServerSessionGone();
+                    return;
+                }
+
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     console.error('OpenAI API Error:', errorData);
@@ -2623,6 +2646,13 @@ body {
         }
 
         // Start Over — fires session save in background, resets UI immediately
+        // Show the disclaimer overlay so the next patient must accept before chatting.
+        // initSession() is deliberately NOT called here — it is called inside the
+        // acceptBtn click handler after the patient clicks "I Understand and Agree".
+        function showDisclaimer() {
+            overlay.style.display = 'flex';
+        }
+
         async function startOver() {
             endSession();                // Fire-and-forget: saves to backend without blocking UI reset
             chatHistory = [];
@@ -2633,7 +2663,7 @@ body {
             stopSpeaking();
             showEmptyState();
             hideBackButton();
-            await initSession();         // Begin a brand-new server session
+            // initSession() is NOT called here — called only after disclaimer is accepted.
         }
         
         // Export Conversation — logging utility only.
@@ -2687,7 +2717,10 @@ body {
             updateLanguage();
         });
 
-        startOverBtn.addEventListener('click', startOver);
+        startOverBtn.addEventListener('click', async () => {
+            await startOver();
+            showDisclaimer(); // Next patient must accept disclaimer before a new session begins
+        });
         
         // endConversationBtn.addEventListener('click', exportConversation);
 
