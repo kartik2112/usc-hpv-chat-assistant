@@ -1619,6 +1619,8 @@ body {
                 'This session has ended due to inactivity. Starting fresh for the next patient.'
             );
             await startOver();
+            // Re-show the disclaimer so the next patient must accept it before chatting.
+            overlay.style.display = 'flex';
         }
 
         function showToastNotification(msg) {
