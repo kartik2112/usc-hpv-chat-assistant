@@ -2499,20 +2499,26 @@ body {
                 const data = await response.json();
                 // const aiResponse = data.choices[0].message.content;
                 const aiResponse = data.message;
-                
-                // Add to chat history
-                add_message_to_chat_history('assistant', aiResponse);
-                syncMessagesToSession(); // Push updated messages to server session
 
-                addAssistantMessage(aiResponse, []);
-
-                addEvent("Chat API Response Received", aiResponse, internalEventLog);
-
-                // Show backend PHI warning if detected (secondary safety net)
                 if (data.phi_warning) {
+                    // PHI detected — keep this exchange out of chatHistory and the session entirely.
+                    // The user message was already added by addUserMessage() before the API call,
+                    // so we pop it back out here.
+                    if (chatHistory.length > 0 &&
+                            chatHistory[chatHistory.length - 1].role === 'user') {
+                        chatHistory.pop();
+                    }
+                    // Show the warning in the UI only — no chatHistory update, no session sync.
+                    addAssistantMessage(aiResponse, []);
                     addEvent('PHI Warning (Backend)', 'Types: ' + (data.phi_types || []).join(', '));
                     const backendDetections = (data.phi_types || []).map(t => ({ type: t, label: t }));
                     showPHIWarning(backendDetections);
+                } else {
+                    // Normal response — add to history and sync to server session.
+                    add_message_to_chat_history('assistant', aiResponse);
+                    syncMessagesToSession(); // Push updated messages to server session
+                    addAssistantMessage(aiResponse, []);
+                    addEvent("Chat API Response Received", aiResponse, internalEventLog);
                 }
 
                 // NEW: Speak response if voice input was used
