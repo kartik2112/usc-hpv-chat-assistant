@@ -1708,10 +1708,11 @@ body {
         }
 
         acceptBtn.addEventListener('click', async function () {
-            addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.')
             // window.localStorage.setItem('hpvAssistantDisclaimerAccepted', 'true');
             overlay.style.display = 'none';
             await initSession(); // Start server-side session only after consent is given
+            addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.')
+
         });
 
         // Initialize Speech Recognition
