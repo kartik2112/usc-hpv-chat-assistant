@@ -2622,15 +2622,15 @@ body {
             }, 8000);
         }
 
-        // Start Over — saves session to server, resets UI, opens fresh session
+        // Start Over — fires session save in background, resets UI immediately
         async function startOver() {
-            await endSession();          // Save logs + generate summary on server; no-op if no session
+            endSession();                // Fire-and-forget: saves to backend without blocking UI reset
             chatHistory = [];
             eventLog = [];
             internalEventLog = [];
             messages.innerHTML = '';
             wasVoiceInput = false;
-            stopSpeaking(); // Stop any ongoing speech
+            stopSpeaking();
             showEmptyState();
             hideBackButton();
             await initSession();         // Begin a brand-new server session
