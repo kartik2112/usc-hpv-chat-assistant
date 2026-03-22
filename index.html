@@ -1594,11 +1594,19 @@ body {
             clearTimeout(inactivityTimer);
             const sid = sessionId;
             sessionId = null; // Nullify early so concurrent calls are no-ops
+
+            // Don't persist empty sessions — nothing to save
+            const nonEmptyHistory = chatHistory.filter(m => m.content && m.content.trim() !== '');
+            if (nonEmptyHistory.length === 0) {
+                console.log('Session ended with no messages — skipping backend save.');
+                return null;
+            }
+
             try {
                 const resp = await fetch(BACKEND_DOMAIN + '/api/session/end', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sid, messages: chatHistory })
+                    body: JSON.stringify({ session_id: sid, messages: nonEmptyHistory })
                 });
                 const data = await resp.json();
                 return data.summary || null;
