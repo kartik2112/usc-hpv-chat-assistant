@@ -1689,10 +1689,11 @@ body {
             recognition.stop();
         }
 
-        acceptBtn.addEventListener('click', function () {
+        acceptBtn.addEventListener('click', async function () {
             addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.')
             // window.localStorage.setItem('hpvAssistantDisclaimerAccepted', 'true');
             overlay.style.display = 'none';
+            await initSession(); // Start server-side session only after consent is given
         });
 
         // Initialize Speech Recognition
@@ -2800,7 +2801,10 @@ body {
             renderStarterQuestions();
             initBackButton();
             warmup_server();
-            initSession(); // Start server-side session for this device
+            // initSession() is intentionally NOT called here — it is called
+            // inside the acceptBtn click handler, after the patient accepts
+            // the disclaimer. This guarantees no session (and no backend
+            // storage) begins until informed consent is given.
 
             // Any device activity resets the 2-minute inactivity timer
             ['mousemove', 'keydown', 'touchstart', 'click', 'scroll'].forEach(evt => {
