@@ -388,14 +388,37 @@
             font-weight: var(--font-weight-bold);
         }
 
-        /* Tab content */
+        /* Tab content — acts as a flex column host; each pane scrolls itself */
         .tab-content {
+            flex: 1;
+            overflow: hidden;       /* clipping host — no scroll here */
+            display: flex;
+            flex-direction: column;
+            padding: 0;             /* padding lives on each pane individually */
+        }
+
+        /* Every pane fills the content area; active ones scroll independently */
+        .tab-pane {
+            display: none;
             flex: 1;
             overflow-y: auto;
             padding: var(--space-24);
         }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; }
+        .tab-pane.active { display: flex; flex-direction: column; }
+
+        /* Events pane: no padding so the table goes full-width and sticky works */
+        #pane-events {
+            padding: 0;
+            overflow: hidden;       /* the inner wrapper scrolls, not this element */
+        }
+        #pane-events.active { display: flex; flex-direction: column; }
+
+        /* Scrollable wrapper inside the events pane — sticky th anchors to this */
+        .event-table-wrap {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
 
         /* ── Summary Tab ─────────────────────────────────────────────────── */
         .summary-grid {
@@ -510,8 +533,10 @@
         /* ── Events Tab ──────────────────────────────────────────────────── */
         .event-table {
             width: 100%;
+            min-width: 560px;           /* prevents column squash on narrow panels */
             border-collapse: collapse;
             font-size: var(--font-size-sm);
+            table-layout: fixed;        /* honour explicit column widths; clip overflow */
         }
         .event-table th {
             text-align: left;
@@ -521,16 +546,27 @@
             color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            /* Solid colour + shadow so scrolled rows don't bleed through */
+            background: #fffffd;        /* matches --color-surface exactly */
             border-bottom: 2px solid var(--color-card-border);
-            background: var(--color-surface);
+            box-shadow: 0 1px 0 var(--color-card-border);
             position: sticky;
             top: 0;
-            z-index: 5;
+            z-index: 10;
         }
         .event-table td {
             padding: var(--space-8) var(--space-12);
             border-bottom: 1px solid var(--color-card-border);
             vertical-align: top;
+            /* Clip long text rather than overflow the column */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* Details column should wrap — it's the main content */
+        .event-table td:last-child {
+            white-space: normal;
+            word-break: break-word;
         }
         .event-table tr:last-child td { border-bottom: none; }
         .event-table tr:hover td { background: var(--color-secondary); }
@@ -696,17 +732,20 @@
                 </div>
                 <!-- Events -->
                 <div class="tab-pane" id="pane-events">
-                    <table class="event-table">
-                        <thead>
-                            <tr>
-                                <th style="width:90px;">Offset</th>
-                                <th style="width:160px;">Type</th>
-                                <th>Lang</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="eventsTableBody"></tbody>
-                    </table>
+                    <!-- Scrollable wrapper: sticky th anchors to THIS element -->
+                    <div class="event-table-wrap">
+                        <table class="event-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:80px;">Offset</th>
+                                    <th style="width:190px;">Type</th>
+                                    <th style="width:60px;">Lang</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventsTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
