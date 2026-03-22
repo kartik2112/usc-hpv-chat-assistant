@@ -1495,7 +1495,7 @@ body {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ session_id: sessionId, event: event })
-                }).catch(() => {});
+                }).then(r => { if (r.status === 404) handleServerSessionGone(); }).catch(() => {});
             }
 
             // Any logged event counts as activity — reset inactivity timer
@@ -1671,7 +1671,7 @@ body {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ session_id: sessionId, messages: chatHistory })
-            }).catch(() => {});
+            }).then(r => { if (r.status === 404) handleServerSessionGone(); }).catch(() => {});
         }
 
         function getAllEventsLogs(){
@@ -2530,7 +2530,10 @@ body {
                     addAssistantMessage(aiResponse, []);
                     addEvent('PHI Warning (Backend)', 'Types: ' + (data.phi_types || []).join(', '));
                     const backendDetections = (data.phi_types || []).map(t => ({ type: t, label: t }));
-                    showPHIWarning(backendDetections);
+                    // Use a fading toast for backend PHI warnings so the UI isn't permanently blocked.
+                    const phiLabels = backendDetections.map(d => d.label).join(', ');
+                    const phiMsg = translations[currentLang].phiWarning.replace('{types}', phiLabels);
+                    showToastNotification('⚠️ ' + phiMsg);
                 } else {
                     // Normal response — add to history and sync to server session.
                     add_message_to_chat_history('assistant', aiResponse);
