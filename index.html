@@ -987,7 +987,6 @@ body {
                 <div class="header-actions">
                     <!-- <button class="btn" id="settingsBtn" title="Settings">⚙️</button> -->
                     <button class="btn" id="endConversationBtn">End Conversation</button>
-                    <button class="btn" id="startOverBtn">Back</button>
                     <button class="btn btn-primary" id="langToggle">Español</button>
                     <button class="btn" id="fontToggle" aria-label="Toggle font size">
                         <span>🔍</span>
@@ -1449,7 +1448,6 @@ body {
         const headerTitle = document.getElementById('headerTitle');
         const headerSubtitle = document.getElementById('headerSubtitle');
         const langToggle = document.getElementById('langToggle');
-        const startOverBtn = document.getElementById('startOverBtn');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
         const micBtn = document.getElementById('micBtn');
@@ -1812,7 +1810,6 @@ body {
             headerTitle.textContent = t.title;
             headerSubtitle.textContent = t.subtitle;
             userInput.placeholder = t.placeholder;
-            startOverBtn.textContent = t.startOver;
             endConversationBtn.textContent = t.endConversation;
             disclaimer.textContent = t.disclaimer;
             disclaimerBodyEl.innerHTML = currentLang === 'es' ? t.disclaimerBodyHTML : enDisclaimerBodyHTML;
@@ -2164,8 +2161,7 @@ body {
         // End Conversation with Confirmation
         function showEndConversationModal() {
             if (chatHistory.length === 0) {
-                const t = translations[currentLang];
-                alert(t.noConversationToExport);
+                startOver().then(() => showDisclaimer());
                 return;
             }
             
@@ -2753,11 +2749,6 @@ body {
             showDisclaimer();
         });
 
-        startOverBtn.addEventListener('click', async () => {
-            await startOver();
-            showDisclaimer(); // Next patient must accept disclaimer before a new session begins
-        });
-        
         // endConversationBtn.addEventListener('click', exportConversation);
 
         endConversationBtn.addEventListener('click', showEndConversationModal);
