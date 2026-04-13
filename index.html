@@ -1503,10 +1503,16 @@ body {
         let inactivityTimer = null;
         const SESSION_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 
+        // Monotonically increasing sequence counter — ensures stable insertion
+        // order even when two events share the same millisecond timestamp and
+        // their fire-and-forget HTTP requests race to the server.
+        let _eventSeq = 0;
+
         // Function to add events to the log
         function addEvent(eventType, eventDetails = "", eventLogArray = eventLog) {
             const timestamp = new Date().toISOString();
             const event = {
+                seq: ++_eventSeq,  // globally ordered within this page session
                 type: eventType, // Button Click, Voice Input, User Text Query, Assistant Response
                 timestamp: timestamp,
                 language: currentLang,

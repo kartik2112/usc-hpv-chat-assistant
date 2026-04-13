@@ -1238,7 +1238,16 @@
         }
 
         // ── Events pane ──
-        const evts = s.events || [];
+        // Sort defensively before rendering: primary = ISO timestamp (lex order
+        // equals chronological order), tiebreaker = client seq counter.
+        // This handles both in-memory sessions (already sorted by the backend)
+        // and older session files saved before the seq field was introduced.
+        const evts = [...(s.events || [])].sort((a, b) => {
+            const tA = a.timestamp || '', tB = b.timestamp || '';
+            if (tA < tB) return -1;
+            if (tA > tB) return  1;
+            return (a.seq || 0) - (b.seq || 0);
+        });
         const tbody = document.getElementById('eventsTableBody');
         if (!evts.length) {
             tbody.innerHTML = `<tr><td colspan="4" style="color:var(--color-text-secondary);padding:16px;">No events recorded.</td></tr>`;
