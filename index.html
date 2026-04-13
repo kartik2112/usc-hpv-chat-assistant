@@ -1429,8 +1429,9 @@ body {
         let isProcessing = false;
         let wasVoiceInput = false; // NEW: Track if current question was via voice
         let currentUtterance = null; // NEW: Track current TTS utterance
-        let isSpeaking = false; // NEW: Track if TTS is active
-        let currentAudioContext = null; // Track current audio playback for OpenAI TTS
+        let isSpeaking = false;           // Track if TTS is active
+        let currentAudioContext = null;   // Current Audio element for TTS playback
+        let _ttsAbortController = null;   // AbortController for in-flight TTS fetch
         const BACKEND_DOMAIN = window.location.href.includes("sackend.isi.edu")? "https://sackend.isi.edu/chathpv/bot/backend": "https://usc-hpv-chat-assistant-backend.onrender.com";
 
         // OpenAI Configuration with NEW SYSTEM PROMPT
@@ -1922,110 +1923,157 @@ body {
         //     window.speechSynthesis.speak(currentUtterance);
         // }
 
-        function speakText(text) {
-            // Stop any ongoing speech
-            if (isSpeaking) {
-                stopSpeaking();
-            }
+        async function speakText(text) {
+            // Stop any ongoing speech and cancel any in-flight request
+            if (isSpeaking) stopSpeaking();
 
             addEvent("TTS API Call Sent", text, internalEventLog);
+            addEvent('Button Click', "Read Message Aloud. Text: " + text);
 
-            // Call OpenAI TTS API through backend
             isSpeaking = true;
             showSpeakingIndicator();
-            
-            // const voiceOption = currentLang === 'en' ? 'echo' : 'onyx';
-            const voiceOption = 'nova'; // Use a female voice for both languages
-            const speedOption = 0.8; // Slightly slower for clarity
 
-            addEvent('Button Click', "Read Message Aloud. Text: " + text);
-            
-            fetch(BACKEND_DOMAIN + '/api/tts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text: text,
-                    language: currentLang,
-                    voice: voiceOption,
-                    speed: speedOption
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                // Use arrayBuffer instead of blob for better compatibility
-                return response.arrayBuffer();
-            })
-            .then(arrayBuffer => {
-                // Stop any current playback
-                if (currentAudioContext) {
-                    currentAudioContext.pause();
-                    currentAudioContext.currentTime = 0;
-                    currentAudioContext = null;
-                }
-                
-                // Create blob from arrayBuffer with explicit audio/mpeg type
-                const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                
-                // Create audio element with proper attributes
-                currentAudioContext = new Audio();
-                currentAudioContext.crossOrigin = 'anonymous';  // IMPORTANT!
-                currentAudioContext.src = audioUrl;
-                
-                // Set up event listeners BEFORE calling play()
-                currentAudioContext.addEventListener('play', () => {
-                    isSpeaking = true;
-                    showSpeakingIndicator();
-                }, { once: true });
-                
-                currentAudioContext.addEventListener('ended', () => {
-                    isSpeaking = false;
-                    hideSpeakingIndicator();
-                    URL.revokeObjectURL(audioUrl);
-                    currentAudioContext = null;
-                }, { once: true });
-                
-                currentAudioContext.addEventListener('error', (event) => {
-                    // Better error logging
-                    console.error('Audio playback error details:');
-                    console.error('Error code:', currentAudioContext.error?.code);
-                    console.error('Error message:', currentAudioContext.error?.message);
-                    console.error('MIME Type set:', audioBlob.type);
-                    console.error('Event:', event);
-                    
-                    isSpeaking = false;
-                    hideSpeakingIndicator();
-                    URL.revokeObjectURL(audioUrl);
-                    currentAudioContext = null;
-                }, { once: true });
-                
-                currentAudioContext.addEventListener('abort', () => {
-                    console.log('Audio playback aborted');
-                    isSpeaking = false;
-                    hideSpeakingIndicator();
-                    URL.revokeObjectURL(audioUrl);
-                    currentAudioContext = null;
-                }, { once: true });
-                
-                // Play audio
-                currentAudioContext.play().catch(error => {
-                    console.error('Failed to play audio:', error);
-                    isSpeaking = false;
-                    hideSpeakingIndicator();
-                    URL.revokeObjectURL(audioUrl);
-                    currentAudioContext = null;
+            // AbortController lets stopSpeaking() cancel the fetch mid-stream
+            _ttsAbortController = new AbortController();
+
+            try {
+                const response = await fetch(BACKEND_DOMAIN + '/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text:     text,
+                        language: currentLang,
+                        voice:    'nova',   // female voice for both languages
+                        speed:    0.8       // slightly slower for clarity
+                    }),
+                    signal: _ttsAbortController.signal
                 });
-                addEvent("TTS API Response Received", "Audio Binary Received", internalEventLog);
-            })
-            .catch(error => {
+
+                if (!response.ok) throw new Error(`TTS HTTP ${response.status}`);
+
+                addEvent("TTS API Response Received", "Audio Stream Started", internalEventLog);
+
+                // ── Streaming path: MediaSource Extensions ───────────────────
+                // audio/mpeg (MP3) is supported by Chrome, Edge, Firefox ≥ 42,
+                // and Safari ≥ 15.4.  Fall back to full-buffer for older Safari.
+                const mseSupported =
+                    typeof MediaSource !== 'undefined' &&
+                    MediaSource.isTypeSupported('audio/mpeg');
+
+                if (mseSupported) {
+                    const mediaSource = new MediaSource();
+                    const audio       = new Audio();
+                    const objectUrl   = URL.createObjectURL(mediaSource);
+                    audio.src         = objectUrl;
+                    currentAudioContext = audio;
+
+                    // Wire up end / error handlers before play()
+                    audio.addEventListener('ended', () => {
+                        isSpeaking = false;
+                        hideSpeakingIndicator();
+                        URL.revokeObjectURL(objectUrl);
+                        currentAudioContext = null;
+                    }, { once: true });
+                    audio.addEventListener('error', () => {
+                        console.error('MSE audio error', audio.error);
+                        isSpeaking = false;
+                        hideSpeakingIndicator();
+                        URL.revokeObjectURL(objectUrl);
+                        currentAudioContext = null;
+                    }, { once: true });
+
+                    // sourceopen fires once the MediaSource is attached to the element
+                    mediaSource.addEventListener('sourceopen', async () => {
+                        URL.revokeObjectURL(objectUrl); // GC the blob URL early
+                        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+
+                        // Queue for chunks that arrive while sourceBuffer is still updating
+                        const appendQueue = [];
+                        let streamDone = false;
+
+                        function tryAppend() {
+                            if (sourceBuffer.updating || appendQueue.length === 0) return;
+                            sourceBuffer.appendBuffer(appendQueue.shift());
+                        }
+
+                        sourceBuffer.addEventListener('updateend', () => {
+                            if (appendQueue.length > 0) {
+                                tryAppend();
+                            } else if (streamDone) {
+                                try { mediaSource.endOfStream(); } catch (_) {}
+                            }
+                        });
+
+                        try {
+                            const reader  = response.body.getReader();
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) {
+                                    streamDone = true;
+                                    // If nothing is pending, close the stream now
+                                    if (!sourceBuffer.updating && appendQueue.length === 0) {
+                                        try { mediaSource.endOfStream(); } catch (_) {}
+                                    }
+                                    break;
+                                }
+                                appendQueue.push(value);
+                                tryAppend();
+                            }
+                        } catch (err) {
+                            if (err.name !== 'AbortError') console.error('TTS stream read error:', err);
+                            isSpeaking = false;
+                            hideSpeakingIndicator();
+                            try { mediaSource.endOfStream('network'); } catch (_) {}
+                        }
+                    }, { once: true });
+
+                    // Start playback — browser will buffer as chunks arrive
+                    audio.play().catch(err => {
+                        console.error('TTS play() failed:', err);
+                        isSpeaking = false;
+                        hideSpeakingIndicator();
+                    });
+
+                } else {
+                    // ── Fallback: buffer the entire MP3, then play ────────────
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBlob   = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                    const audioUrl    = URL.createObjectURL(audioBlob);
+
+                    const audio = new Audio(audioUrl);
+                    currentAudioContext = audio;
+
+                    audio.addEventListener('ended', () => {
+                        isSpeaking = false;
+                        hideSpeakingIndicator();
+                        URL.revokeObjectURL(audioUrl);
+                        currentAudioContext = null;
+                    }, { once: true });
+                    audio.addEventListener('error', () => {
+                        console.error('Audio playback error', audio.error);
+                        isSpeaking = false;
+                        hideSpeakingIndicator();
+                        URL.revokeObjectURL(audioUrl);
+                        currentAudioContext = null;
+                    }, { once: true });
+
+                    audio.play().catch(err => {
+                        console.error('TTS play() failed:', err);
+                        isSpeaking = false;
+                        hideSpeakingIndicator();
+                        URL.revokeObjectURL(audioUrl);
+                        currentAudioContext = null;
+                    });
+                }
+
+            } catch (error) {
+                if (error.name === 'AbortError') return; // User pressed Stop — clean exit
                 console.error('TTS API error:', error);
                 isSpeaking = false;
                 hideSpeakingIndicator();
-            });
+            } finally {
+                _ttsAbortController = null;
+            }
         }
 
         // Show the back button
@@ -2084,10 +2132,16 @@ body {
 
         function stopSpeaking() {
             if (isSpeaking) {
-                // Stop current audio playback
+                // Cancel the in-flight TTS fetch (stops the stream mid-download)
+                if (_ttsAbortController) {
+                    _ttsAbortController.abort();
+                    _ttsAbortController = null;
+                }
+                // Pause and reset the audio element
                 if (currentAudioContext) {
                     currentAudioContext.pause();
                     currentAudioContext.currentTime = 0;
+                    currentAudioContext = null;
                 }
                 isSpeaking = false;
                 hideSpeakingIndicator();
@@ -2472,13 +2526,14 @@ body {
             renderStarterQuestions();
         }
 
-        // Call OpenAI API
+        // Call OpenAI API — streams the response via Server-Sent Events so the
+        // message bubble fills in token-by-token rather than appearing all at once.
         async function callChatOpenAI(userQuestion) {
             if (isProcessing) return;
             isProcessing = true;
             addEvent("Chat API Call Sent", userQuestion, internalEventLog);
 
-            // Add typing indicator
+            // Show typing indicator while the first token is on its way
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message assistant';
             typingDiv.id = 'typing-indicator';
@@ -2493,107 +2548,156 @@ body {
             `;
             messages.appendChild(typingDiv);
             scrollToBottom();
-            
+
+            // Track streaming state outside try so the catch block can see it
+            let streamingDiv = null;
+            let streamingTextEl = null;
+            let fullText = '';
+
             try {
                 // Build messages array with conversation history
                 const messagesArray = [
-                    {
-                        role: 'system',
-                        content: OPENAI_CONFIG.systemMessage
-                    }
+                    { role: 'system', content: OPENAI_CONFIG.systemMessage }
                 ];
-                
-                // Add conversation history (excluding the current question which is already in chatHistory)
                 chatHistory.forEach(msg => {
                     if (msg.role !== 'assistant' || !msg.followups) {
-                        messagesArray.push({
-                            role: msg.role,
-                            content: msg.content
-                        });
+                        messagesArray.push({ role: msg.role, content: msg.content });
                     }
                 });
-                
+
                 const response = await fetch(OPENAI_CONFIG.endpoint, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: OPENAI_CONFIG.model,
                         messages: messagesArray,
                         max_tokens: OPENAI_CONFIG.maxTokens,
                         temperature: OPENAI_CONFIG.temperature,
-                        language: currentLang   // tells the backend which spaCy model to use for PHI detection
+                        language: currentLang   // backend uses this to select the right spaCy PHI model
                     })
                 });
-                
-                // Remove typing indicator
-                const typingIndicator = document.getElementById('typing-indicator');
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                }
-                
+
                 if (response.status === 404) {
-                    // Backend has no record of this session — it was dropped or restarted.
+                    document.getElementById('typing-indicator')?.remove();
                     isProcessing = false;
                     await handleServerSessionGone();
                     return;
                 }
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('OpenAI API Error:', errorData);
-                    // addAssistantMessage(translations[currentLang].apiError, []);
+                    document.getElementById('typing-indicator')?.remove();
+                    addAssistantMessage(translations[currentLang].apiError, []);
                     isProcessing = false;
                     return;
                 }
-                
-                const data = await response.json();
-                // const aiResponse = data.choices[0].message.content;
-                const aiResponse = data.message;
 
-                if (data.phi_warning) {
-                    // PHI detected — keep this exchange out of chatHistory and the session entirely.
-                    // The user message was already added by addUserMessage() before the API call,
-                    // so we pop it back out here.
-                    if (chatHistory.length > 0 &&
-                            chatHistory[chatHistory.length - 1].role === 'user') {
-                        chatHistory.pop();
+                // ── SSE stream reader ─────────────────────────────────────────
+                const reader  = response.body.getReader();
+                const decoder = new TextDecoder();
+                let sseBuffer = '';   // holds incomplete SSE lines between read() calls
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    sseBuffer += decoder.decode(value, { stream: true });
+
+                    // Split on newlines; the last element may be an incomplete line
+                    const lines = sseBuffer.split('\n');
+                    sseBuffer = lines.pop();   // keep incomplete tail for next iteration
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const jsonStr = line.slice(6).trim();
+                        if (!jsonStr) continue;
+
+                        let evt;
+                        try { evt = JSON.parse(jsonStr); } catch { continue; }
+
+                        // ── PHI warning ───────────────────────────────────────
+                        if (evt.type === 'phi_warning') {
+                            document.getElementById('typing-indicator')?.remove();
+                            // Pop the user message out of history — we don't want
+                            // PHI-flagged turns persisted anywhere.
+                            if (chatHistory.length > 0 &&
+                                    chatHistory[chatHistory.length - 1].role === 'user') {
+                                chatHistory.pop();
+                            }
+                            addAssistantMessage(evt.message, []);
+                            addEvent('PHI Warning (Backend)', 'Types: ' + (evt.phi_types || []).join(', '));
+                            const phiLabels = (evt.phi_types || []).join(', ');
+                            const phiMsg = translations[currentLang].phiWarning.replace('{types}', phiLabels);
+                            showToastNotification('⚠️ ' + phiMsg);
+
+                        // ── Incoming token ────────────────────────────────────
+                        } else if (evt.type === 'token') {
+                            // On the very first token: swap typing indicator → real bubble
+                            if (!streamingDiv) {
+                                document.getElementById('typing-indicator')?.remove();
+
+                                streamingDiv = document.createElement('div');
+                                streamingDiv.className = 'message assistant';
+                                streamingDiv.innerHTML = `
+                                    <button class="speaker-btn" aria-label="Read message aloud" title="Read message aloud">🔊</button>
+                                    <div class="message-content">
+                                        <div class="message-text"></div>
+                                    </div>
+                                `;
+                                messages.appendChild(streamingDiv);
+                                streamingTextEl = streamingDiv.querySelector('.message-text');
+                            }
+
+                            fullText += evt.token;
+                            // textContent is XSS-safe and matches how addAssistantMessage renders plain text
+                            streamingTextEl.textContent = fullText;
+                            scrollToBottom();
+
+                        // ── Stream complete ───────────────────────────────────
+                        } else if (evt.type === 'done') {
+                            const finalText = evt.message || fullText;
+
+                            if (streamingDiv) {
+                                // Ensure the text matches the server's assembled copy
+                                streamingTextEl.textContent = finalText;
+                                // Wire the speaker button now that the full text is known
+                                const speakerBtn = streamingDiv.querySelector('.speaker-btn');
+                                if (speakerBtn) {
+                                    speakerBtn.addEventListener('click', () => speakText(finalText));
+                                }
+                            } else {
+                                // No tokens arrived (shouldn't happen in practice)
+                                document.getElementById('typing-indicator')?.remove();
+                                addAssistantMessage(finalText, []);
+                            }
+
+                            // Persist to history and sync to server session
+                            add_message_to_chat_history('assistant', finalText);
+                            syncMessagesToSession();
+                            addEvent("Chat API Response Received", finalText, internalEventLog);
+
+                            if (wasVoiceInput) {
+                                speakText(finalText);
+                                wasVoiceInput = false;
+                            }
+
+                        // ── Server-side error ─────────────────────────────────
+                        } else if (evt.type === 'error') {
+                            document.getElementById('typing-indicator')?.remove();
+                            if (!streamingDiv) {
+                                addAssistantMessage(translations[currentLang].apiError, []);
+                            }
+                        }
                     }
-                    // Show the warning in the UI only — no chatHistory update, no session sync.
-                    addAssistantMessage(aiResponse, []);
-                    addEvent('PHI Warning (Backend)', 'Types: ' + (data.phi_types || []).join(', '));
-                    const backendDetections = (data.phi_types || []).map(t => ({ type: t, label: t }));
-                    // Use a fading toast for backend PHI warnings so the UI isn't permanently blocked.
-                    const phiLabels = backendDetections.map(d => d.label).join(', ');
-                    const phiMsg = translations[currentLang].phiWarning.replace('{types}', phiLabels);
-                    showToastNotification('⚠️ ' + phiMsg);
-                } else {
-                    // Normal response — add to history and sync to server session.
-                    add_message_to_chat_history('assistant', aiResponse);
-                    syncMessagesToSession(); // Push updated messages to server session
-                    addAssistantMessage(aiResponse, []);
-                    addEvent("Chat API Response Received", aiResponse, internalEventLog);
                 }
 
-                // NEW: Speak response if voice input was used
-                if (wasVoiceInput) {
-                    speakText(aiResponse);
-                    wasVoiceInput = false; // Reset flag
-                }
-                
             } catch (error) {
-                console.error('Error calling OpenAI:', error);
-                
-                // Remove typing indicator
-                const typingIndicator = document.getElementById('typing-indicator');
-                if (typingIndicator) {
-                    typingIndicator.remove();
+                console.error('Error calling chat API:', error);
+                document.getElementById('typing-indicator')?.remove();
+                if (!streamingDiv) {
+                    addAssistantMessage(translations[currentLang].apiError, []);
                 }
-                
-                addAssistantMessage(translations[currentLang].apiError, []);
             }
-            
+
             isProcessing = false;
         }
         
