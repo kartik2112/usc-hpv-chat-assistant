@@ -1497,7 +1497,6 @@ body {
         // ========== NEW EVENT TRACKING SYSTEM ==========
         // Global event log array - tracks all user actions and events
         let eventLog = [];
-        let internalEventLog = [];
 
         // ========== SESSION MANAGEMENT STATE ==========
         let sessionId = null;
@@ -1510,20 +1509,20 @@ body {
         let _eventSeq = 0;
 
         // Function to add events to the log
-        function addEvent(eventType, eventDetails = "", eventLogArray = eventLog) {
+        function addEvent(eventType, eventDetails = "") {
             const timestamp = new Date().toISOString();
             const event = {
                 seq: ++_eventSeq,  // globally ordered within this page session
-                type: eventType, // Button Click, Voice Input, User Text Query, Assistant Response
+                type: eventType,
                 timestamp: timestamp,
                 language: currentLang,
                 details: eventDetails
             };
-            eventLogArray.push(event);
+            eventLog.push(event);
             console.log('Event logged:', event); // For debugging
 
-            // Sync main events (not internal API events) to server session — fire-and-forget
-            if (sessionId && eventLogArray === eventLog) {
+            // Sync event to server session — fire-and-forget
+            if (sessionId) {
                 fetch(BACKEND_DOMAIN + '/api/session/log', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1534,76 +1533,7 @@ body {
             // Any logged event counts as activity — reset inactivity timer
             resetInactivityTimer();
         }
-        
-        // Function to get all events
-        function getAllEvents() {
-            return eventLog;
-        }
 
-        function getTotalSessionTimeInMins(){
-            if (eventLog.length === 0) return 0;
-            const sessionStart = new Date(eventLog[0].timestamp);
-            const sessionEnd = new Date(eventLog[eventLog.length - 1].timestamp);
-            return ((sessionEnd - sessionStart) / 60000).toFixed(2);
-        }
-
-        function getServerLatencyStats(){
-            if (internalEventLog.length === 0) return "Server never called for either TTS or Chat response - only suggested questions were viewed";
-            
-            let chatAPILatencies = [];
-            let ttsAPILatencies = [];
-            internalEventLog.forEach((event, index) => {
-                if (event.type === "Chat API Call Sent"){
-                    chatAPILatencies.push(event.timestamp);
-                }
-                else if (event.type === "TTS API Call Sent"){
-                    ttsAPILatencies.push(event.timestamp);
-                }
-                else if (event.type === "Chat API Response Received") {
-                    chatAPILatencies[chatAPILatencies.length - 1] = getTimeDifference(event.timestamp, chatAPILatencies[chatAPILatencies.length - 1], formattedString=false) / 1000;
-                } else if (event.type === "TTS API Response Received") {
-                    ttsAPILatencies[ttsAPILatencies.length - 1] = getTimeDifference(event.timestamp, ttsAPILatencies[ttsAPILatencies.length - 1], formattedString=false) / 1000;
-                }
-            });
-            console.log("Chat API Latencies:", chatAPILatencies);
-            console.log("TTS API Latencies:", ttsAPILatencies);
-            chatAPILatencies = chatAPILatencies.filter(x => typeof x === 'number');
-            chatAPILatency = chatAPILatencies.reduce((a, b) => a + b, 0);
-            ttsAPILatencies = ttsAPILatencies.filter(x => typeof x === 'number');
-            ttsAPILatency = ttsAPILatencies.reduce((a, b) => a + b, 0);
-            latencyLogs = `Total Server Wait Time: ${(chatAPILatency + ttsAPILatency).toFixed(2)} seconds\n` + 
-                `Chat API Latency: ${chatAPILatency.toFixed(2)} seconds\n` +
-                `TTS API Latency: ${ttsAPILatency.toFixed(2)} seconds\n` +
-                `Average Chat API Latency: ${(chatAPILatencies.length == 0? 0 : (chatAPILatency) / chatAPILatencies.length).toFixed(2)} seconds\n` +
-                `Average TTS API Latency: ${(ttsAPILatencies.length == 0? 0 : (ttsAPILatency) / ttsAPILatencies.length).toFixed(2)} seconds\n`;
-            return latencyLogs;
-        }
-
-        function getTimeDifference(timestamp1, timestamp2, formattedString=true) {
-            // Calculate the difference in milliseconds
-            const diffMs = Math.abs(new Date(timestamp2) - new Date(timestamp1));
-
-            if (formattedString) {
-                // Extract time components
-                const totalSeconds = Math.floor(diffMs / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-                const milliseconds = diffMs % 1000;
-                
-                // Format as XX:XX:XX.YY
-                const formatted = 
-                    String(hours).padStart(2, '0') + ':' +
-                    String(minutes).padStart(2, '0') + ':' +
-                    String(seconds).padStart(2, '0') + '.' +
-                    String(Math.floor(milliseconds / 10)).padStart(2, '0');
-                
-                return formatted;
-            }
-            else{
-                return diffMs; // return difference in milliseconds
-            }
-        }
 
         // ========== SESSION MANAGEMENT FUNCTIONS ==========
 
@@ -1707,27 +1637,6 @@ body {
             }).then(r => { if (r.status === 404) handleServerSessionGone(); }).catch(() => {});
         }
 
-        function getAllEventsLogs(){
-            let all_logs = [];
-            try{
-                const logs = getAllEvents();
-                // Format logs as needed
-                all_logs.push(`${new Date(logs[0].timestamp).toLocaleString()} Session Start`);
-                all_logs = all_logs.concat(logs.map(log => `${getTimeDifference(logs[0].timestamp, log.timestamp)} ${log.language} [${log.type}] ${log.details}`));
-                all_logs.push(`${new Date(logs[logs.length - 1].timestamp).toLocaleString()} Session End`);
-                return all_logs.join("\n\n");
-            } catch (error) {
-                // Code to handle the error
-                console.error("An error occurred:", error.message);
-                // console.error(logs);
-                console.log(all_logs);
-            }
-        }
-
-        // Function to clear event log (called after export)
-        function clearEventLog() {
-            eventLog = [];
-        }
         // ============================================
 
         function SeriouslyStopListening(recognition)
@@ -1927,7 +1836,7 @@ body {
             // Stop any ongoing speech and cancel any in-flight request
             if (isSpeaking) stopSpeaking();
 
-            addEvent("TTS API Call Sent", text, internalEventLog);
+            addEvent("TTS API Call Sent", text);
             addEvent('Button Click', "Read Message Aloud. Text: " + text);
 
             isSpeaking = true;
@@ -1951,7 +1860,7 @@ body {
 
                 if (!response.ok) throw new Error(`TTS HTTP ${response.status}`);
 
-                addEvent("TTS API Response Received", "Audio Stream Started", internalEventLog);
+                addEvent("TTS API Response Received", "Audio Stream Started");
 
                 // ── Streaming path: MediaSource Extensions ───────────────────
                 // audio/mpeg (MP3) is supported by Chrome, Edge, Firefox ≥ 42,
@@ -2231,9 +2140,6 @@ body {
 
         function confirmEndConversation() {
             hideModal(endConversationModal);
-            // Moved export to after feedback was skipped or added
-            // exportConversation();
-            
             // Show feedback modal after a brief delay
             setTimeout(() => {
                 showFeedbackModal();
@@ -2290,9 +2196,7 @@ body {
             const followups = typeof suggestion.followups === 'object' ? (suggestion.followups[currentLang] || []) : (suggestion.followups || []);
             
             addUserMessage(question);
-            
-            // Add to chat history for OpenAI context
-            add_message_to_chat_history('user', question);
+
             add_message_to_chat_history('assistant', answer);
             syncMessagesToSession(); // Push updated messages to server session
 
@@ -2311,112 +2215,14 @@ body {
         // Handle Question Click (for typed questions - always call OpenAI)
         async function handleQuestionClick(question) {
             if (isProcessing) return;
-            
-            addUserMessage(question);
-            
-            // For typed questions, always call OpenAI (no similarity matching)
-            // if (apiKey) {
-            await callChatOpenAI(question);
-            // } 
-            // else {
-            //     const noKeyMsg = translations[currentLang].noApiKey;
-            //     addAssistantMessage(noKeyMsg, []);
-            //     if (wasVoiceInput) {
-            //         speakText(noKeyMsg);
-            //         wasVoiceInput = false;
-            //     }
-            // }
-            hideEmptyState();
-        }
 
-        // Find Answer
-        function findAnswer(question) {
-            // Normalize question for comparison
-            const normalizedQuestion = question.toLowerCase().trim();
-            
-            // Check exact matches
-            for (const key in knowledgeBase) {
-                const entry = knowledgeBase[key];
-                if (entry.en && entry.en.toLowerCase() === normalizedQuestion) {
-                    return {
-                        text: entry[`answer_${currentLang}`],
-                        followups: entry[`followups_${currentLang}`] || []
-                    };
-                }
-                if (entry.es && entry.es.toLowerCase() === normalizedQuestion) {
-                    return {
-                        text: entry[`answer_${currentLang}`],
-                        followups: entry[`followups_${currentLang}`] || []
-                    };
-                }
-                if (entry.answer_en && key.toLowerCase() === normalizedQuestion) {
-                    return {
-                        text: entry[`answer_${currentLang}`],
-                        followups: entry[`followups_${currentLang}`] || []
-                    };
-                }
-            }
-            
-            // Fuzzy matching with keywords
-            const keywords = {
-                vaccine: ['vaccine', 'vaccination', 'vacuna', 'vacunación'],
-                symptoms: ['symptom', 'síntoma', 'sign', 'señal'],
-                transmission: ['transmit', 'spread', 'transmite', 'propaga', 'contagio'],
-                cure: ['cure', 'treat', 'cura', 'tratamiento'],
-                cancer: ['cancer', 'cáncer'],
-                pap: ['pap', 'papanicolaou', 'smear', 'screening', 'test'],
-                protect: ['protect', 'prevent', 'proteger', 'prevenir'],
-                risk: ['risk', 'worried', 'concern', 'riesgo', 'preocup']
-            };
-            
-            for (const category in keywords) {
-                for (const keyword of keywords[category]) {
-                    if (normalizedQuestion.includes(keyword)) {
-                        // Return contextually relevant answer
-                        if (category === 'symptoms' && knowledgeBase['What are the symptoms of HPV?']) {
-                            const entry = knowledgeBase['What are the symptoms of HPV?'];
-                            return {
-                                text: entry[`answer_${currentLang}`],
-                                followups: entry[`followups_${currentLang}`] || []
-                            };
-                        }
-                        if (category === 'transmission' && knowledgeBase['How is HPV transmitted?']) {
-                            const entry = knowledgeBase['How is HPV transmitted?'];
-                            return {
-                                text: entry[`answer_${currentLang}`],
-                                followups: entry[`followups_${currentLang}`] || []
-                            };
-                        }
-                        if (category === 'cure' && knowledgeBase['Can HPV be cured?']) {
-                            const entry = knowledgeBase['Can HPV be cured?'];
-                            return {
-                                text: entry[`answer_${currentLang}`],
-                                followups: entry[`followups_${currentLang}`] || []
-                            };
-                        }
-                        if (category === 'vaccine' || category === 'protect') {
-                            return {
-                                text: knowledgeBase.q2[`answer_${currentLang}`],
-                                followups: knowledgeBase.q2[`followups_${currentLang}`] || []
-                            };
-                        }
-                        if (category === 'pap') {
-                            return {
-                                text: knowledgeBase.q4[`answer_${currentLang}`],
-                                followups: knowledgeBase.q4[`followups_${currentLang}`] || []
-                            };
-                        }
-                        if (category === 'risk' || category === 'cancer') {
-                            return {
-                                text: knowledgeBase.q3[`answer_${currentLang}`],
-                                followups: knowledgeBase.q3[`followups_${currentLang}`] || []
-                            };
-                        }
-                    }
-                }
-            }
-            
-            return null;
+            addUserMessage(question);
+            // Persist user message immediately so events and messages stay in sync
+            // even if the session expires before the assistant response arrives.
+            syncMessagesToSession();
+
+            await callChatOpenAI(question);
+            hideEmptyState();
         }
 
         // Add User Message
@@ -2531,7 +2337,7 @@ body {
         async function callChatOpenAI(userQuestion) {
             if (isProcessing) return;
             isProcessing = true;
-            addEvent("Chat API Call Sent", userQuestion, internalEventLog);
+            addEvent("Chat API Call Sent", userQuestion);
 
             // Show typing indicator while the first token is on its way
             const typingDiv = document.createElement('div');
@@ -2622,6 +2428,9 @@ body {
                             if (chatHistory.length > 0 &&
                                     chatHistory[chatHistory.length - 1].role === 'user') {
                                 chatHistory.pop();
+                                // Sync the removal so the server's messages array no longer
+                                // contains the PHI message we just added via syncMessagesToSession().
+                                syncMessagesToSession();
                             }
                             addAssistantMessage(evt.message, []);
                             addEvent('PHI Warning (Backend)', 'Types: ' + (evt.phi_types || []).join(', '));
@@ -2673,7 +2482,7 @@ body {
                             // Persist to history and sync to server session
                             add_message_to_chat_history('assistant', finalText);
                             syncMessagesToSession();
-                            addEvent("Chat API Response Received", finalText, internalEventLog);
+                            addEvent("Chat API Response Received", finalText);
 
                             if (wasVoiceInput) {
                                 speakText(finalText);
@@ -2803,7 +2612,6 @@ body {
             endSession();                // Fire-and-forget: saves to backend without blocking UI reset
             chatHistory = [];
             eventLog = [];
-            internalEventLog = [];
             messages.innerHTML = '';
             wasVoiceInput = false;
             stopSpeaking();
@@ -2811,16 +2619,6 @@ body {
             hideBackButton();
             showDisclaimer();
             // initSession() is NOT called here — called only after disclaimer is accepted.
-        }
-        
-        // Export Conversation — logging utility only.
-        // The actual .txt save happens server-side via endSession() inside startOver().
-        // This function must NOT call startOver() itself — callers handle that.
-        function exportConversation() {
-            if (chatHistory.length === 0) return;
-            // Log locally for debugging
-            console.log("Event log:", getAllEventsLogs());
-            console.log("Internal Log:", internalEventLog);
         }
 
         // Event Listeners
@@ -2864,8 +2662,6 @@ body {
             updateLanguage();
             showDisclaimer();
         });
-
-        // endConversationBtn.addEventListener('click', exportConversation);
 
         endConversationBtn.addEventListener('click', showEndConversationModal);
 
