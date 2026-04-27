@@ -2422,6 +2422,7 @@ body {
 
                         // ── PHI warning ───────────────────────────────────────
                         if (evt.type === 'phi_warning') {
+                            console.log(evt)
                             document.getElementById('typing-indicator')?.remove();
                             // Pop the user message out of history — we don't want
                             // PHI-flagged turns persisted anywhere.
