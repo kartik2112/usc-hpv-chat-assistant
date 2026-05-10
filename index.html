@@ -319,61 +319,69 @@ body {
   white-space: pre-wrap;
 }
 
+/* Follow-up questions are now rendered in the suggestions area, not the message bubble */
 .followup-questions {
-  margin-top: var(--space-12);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+  display: none;
 }
 
 .followup-btn {
-  padding: var(--space-10) var(--space-16);
-  background-color: var(--color-usc-gold-light);
+  display: none;
+}
+
+/* Suggestions Area (starter + follow-up pills near input) */
+.suggestions-area {
+  padding: var(--space-8) 0 var(--space-6) 0;
+}
+
+.suggestions-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.suggestions-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6) var(--space-8);
+  align-items: flex-start;
+}
+
+.suggestion-pill {
+  padding: var(--space-6) var(--space-12);
+  background-color: var(--color-surface);
   border: 1px solid var(--color-card-border);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-full);
   color: var(--color-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-base);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
+  /* Allow full text — no truncation */
+  white-space: normal;
+  word-break: break-word;
   text-align: left;
-  font-family: var(--font-family-base);
-}
-
-.followup-btn:hover {
-  background-color: var(--color-secondary-hover);
-  transform: translateX(4px);
-}
-
-/* Starter Questions */
-.starter-questions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--space-16);
-  margin-bottom: var(--space-24);
-}
-
-.starter-card {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-card-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-20);
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-standard);
-  box-shadow: var(--shadow-sm);
-}
-
-.starter-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-  border-color: var(--color-primary);
-}
-
-.starter-card-text {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
   line-height: 1.4;
+  /* Cap width so very long sentences stay readable but don't span full width */
+  max-width: min(100%, 420px);
+}
+
+.suggestion-pill:hover {
+  background-color: var(--color-secondary-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.suggestion-pill:active {
+  background-color: var(--color-secondary-active);
+}
+
+/* Legacy hidden element (starter-questions no longer rendered) */
+.starter-questions {
+  display: none;
 }
 
 /* Input Area */
@@ -1000,9 +1008,10 @@ body {
         <main class="chat-container">
             <div id="emptyState" class="empty-state">
                 <h2 class="empty-state-title" id="emptyTitle">Welcome! I can answer any question you have about HPV!</h2>
-                <p class="empty-state-subtitle" id="emptySubtitle">Select a question below or type or speak your own question</p>
+                <p class="empty-state-subtitle" id="emptySubtitle">Select a question below or type your own</p>
             </div>
-            
+
+            <!-- starter-questions kept in DOM for legacy JS compatibility but visually hidden via CSS -->
             <div id="starterQuestions" class="starter-questions"></div>
             <div id="backButtonContainer" style="display: none; margin-bottom: 16px;">
                 <button id="backBtn" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px;">
@@ -1015,6 +1024,10 @@ body {
 
         <!-- Input Area -->
         <div class="input-container">
+            <div id="suggestionsArea" class="suggestions-area hidden">
+                <div class="suggestions-label" id="suggestionsLabel">Try asking:</div>
+                <div id="suggestionsPills" class="suggestions-pills"></div>
+            </div>
             <div id="phiWarning" class="phi-warning hidden"></div>
             <div class="input-wrapper">
                 <input 
@@ -1501,7 +1514,8 @@ body {
         // ========== SESSION MANAGEMENT STATE ==========
         let sessionId = null;
         let inactivityTimer = null;
-        const SESSION_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+        // Front-end inactivity timer removed — session expiry is handled server-side.
+        // When any API call returns 404, handleServerSessionGone() restarts the session.
 
         // Monotonically increasing sequence counter — ensures stable insertion
         // order even when two events share the same millisecond timestamp and
@@ -1598,18 +1612,12 @@ body {
             }
         }
 
+        // Front-end inactivity timer removed. Session expiry is fully server-side
+        // (SESSION_TIMEOUT_MINUTES in flask_backend.py). The frontend detects expiry
+        // when any /api/session/log or /api/chat call returns HTTP 404, at which point
+        // handleServerSessionGone() is called to reset the UI and show the disclaimer.
         function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(handleSessionTimeout, SESSION_TIMEOUT_MS);
-        }
-
-        async function handleSessionTimeout() {
-            console.log('Session timed out due to inactivity.');
-            showToastNotification(
-                'This session has ended due to inactivity. Starting fresh for the next patient.'
-            );
-            await startOver();
-            showDisclaimer(); // Next patient must accept before a new session begins
+            // No-op: front-end timer removed; kept to avoid breaking call-sites.
         }
 
         function showToastNotification(msg) {
@@ -1650,11 +1658,11 @@ body {
         }
 
         acceptBtn.addEventListener('click', async function () {
-            // window.localStorage.setItem('hpvAssistantDisclaimerAccepted', 'true');
             overlay.style.display = 'none';
             await initSession(); // Start server-side session only after consent is given
-            addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.')
-
+            addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.');
+            // Show starter question pills now that the session is live
+            renderStarterQuestions();
         });
 
         // Initialize Speech Recognition
@@ -2005,19 +2013,19 @@ body {
         function handleBackButton() {
             // Clear the chat
             messages.innerHTML = '';
-            
+
             // Reset chat history
             chatHistory = [];
-            
+
             // Stop any speech
             stopSpeaking();
-            
-            // Show the starter questions
+
+            // Show the starter questions (empty state + starter pills)
             showEmptyState();
-            
+
             // Hide the back button
             hideBackButton();
-            
+
             // Reset processing flag
             isProcessing = false;
         }
@@ -2083,25 +2091,51 @@ body {
             }
         }
 
-        // Render Starter Questions
+        // Render starter question pills in the suggestions area near the input.
         function renderStarterQuestions() {
             if (chatHistory.length > 0) {
-                starterQuestions.classList.add('hidden');
+                // Chat is active — don't replace follow-up pills with starters
                 return;
             }
-            
-            starterQuestions.classList.remove('hidden');
-            starterQuestions.innerHTML = '';
-            
-            // Use new initialSuggestions data structure with current language
-            initialSuggestions.forEach(suggestion => {
-                const card = document.createElement('div');
-                card.className = 'starter-card';
-                const title = typeof suggestion.title === 'object' ? suggestion.title[currentLang] : suggestion.title;
-                card.innerHTML = `<div class="starter-card-text">${escapeHtml(title)}</div>`;
-                card.addEventListener('click', () => handleSuggestionClick(suggestion));
-                starterQuestions.appendChild(card);
+            const starterLabel = currentLang === 'en' ? 'Try asking:' : 'Intenta preguntar:';
+            showSuggestionPills(initialSuggestions, starterLabel, (suggestion) => handleSuggestionClick(suggestion));
+        }
+
+        // Generic function to populate the suggestions pill row.
+        // items: array of suggestion objects (with .title / .action) or plain strings.
+        // label: small label shown above the pills.
+        // onClick: function called with the item when a pill is clicked.
+        function showSuggestionPills(items, label, onClick) {
+            const area = document.getElementById('suggestionsArea');
+            const pillsEl = document.getElementById('suggestionsPills');
+            const labelEl = document.getElementById('suggestionsLabel');
+
+            if (!items || items.length === 0) {
+                area.classList.add('hidden');
+                return;
+            }
+
+            labelEl.textContent = label;
+            pillsEl.innerHTML = '';
+
+            items.forEach(item => {
+                const title = typeof item.title === 'object'
+                    ? (item.title[currentLang] || item.title['en'])
+                    : (item.title || item);
+
+                const btn = document.createElement('button');
+                btn.className = 'suggestion-pill';
+                btn.textContent = title;
+                btn.addEventListener('click', () => onClick(item));
+                pillsEl.appendChild(btn);
             });
+
+            area.classList.remove('hidden');
+        }
+
+        function hideSuggestionPills() {
+            const area = document.getElementById('suggestionsArea');
+            if (area) area.classList.add('hidden');
         }
 
         function add_message_to_chat_history(role, content) {
@@ -2186,28 +2220,37 @@ body {
         }
 
 
-        // NEW: Handle Suggestion Click (from starter or follow-up)
+        // Handle Suggestion Click (from starter or follow-up pill)
         async function handleSuggestionClick(suggestion) {
             if (isProcessing) return;
-            
+
             // Extract language-specific values
             const question = typeof suggestion.action === 'object' ? suggestion.action[currentLang] : (suggestion.action || suggestion.title);
             const answer = typeof suggestion.defaultAnswer === 'object' ? suggestion.defaultAnswer[currentLang] : suggestion.defaultAnswer;
             const followups = typeof suggestion.followups === 'object' ? (suggestion.followups[currentLang] || []) : (suggestion.followups || []);
-            
+
             addUserMessage(question);
 
             add_message_to_chat_history('assistant', answer);
             syncMessagesToSession(); // Push updated messages to server session
 
-            addAssistantMessage(answer, followups);
-            
-            // NEW: Speak if voice was used
+            // Pass empty followups — they are shown in the suggestions area, not the bubble
+            addAssistantMessage(answer, []);
+
+            // Show follow-up pills in the suggestions area (if any), otherwise hide
+            if (followups && followups.length > 0) {
+                const followupLabel = currentLang === 'en' ? 'Follow-up questions:' : 'Preguntas de seguimiento:';
+                showSuggestionPills(followups, followupLabel, (fu) => handleSuggestionClick(fu));
+            } else {
+                hideSuggestionPills();
+            }
+
+            // Speak if voice was used
             if (wasVoiceInput) {
                 speakText(answer);
                 wasVoiceInput = false; // Reset flag
             }
-            
+
             hideEmptyState();
             showBackButton();
         }
@@ -2216,6 +2259,7 @@ body {
         async function handleQuestionClick(question) {
             if (isProcessing) return;
 
+            hideSuggestionPills(); // Hide pills immediately when user sends a custom question
             addUserMessage(question);
             // Persist user message immediately so events and messages stay in sync
             // even if the session expires before the assistant response arrives.
@@ -2324,12 +2368,14 @@ body {
         function hideEmptyState() {
             emptyState.classList.add('hidden');
             starterQuestions.classList.add('hidden');
+            // Note: suggestion pills (follow-ups) are NOT hidden here — they remain
+            // visible so the user can click a follow-up after the answer appears.
         }
 
         // Show Empty State
         function showEmptyState() {
             emptyState.classList.remove('hidden');
-            renderStarterQuestions();
+            renderStarterQuestions(); // Shows starter pills in suggestions area
         }
 
         // Call OpenAI API — streams the response via Server-Sent Events so the
@@ -2337,6 +2383,7 @@ body {
         async function callChatOpenAI(userQuestion) {
             if (isProcessing) return;
             isProcessing = true;
+            hideSuggestionPills(); // Hide suggestion pills while fetching
             addEvent("Chat API Call Sent", userQuestion);
 
             // Show typing indicator while the first token is on its way
@@ -2616,6 +2663,7 @@ body {
             messages.innerHTML = '';
             wasVoiceInput = false;
             stopSpeaking();
+            hideSuggestionPills();       // Will be re-shown after disclaimer is accepted
             showEmptyState();
             hideBackButton();
             showDisclaimer();
@@ -2779,21 +2827,11 @@ body {
             // the disclaimer. This guarantees no session (and no backend
             // storage) begins until informed consent is given.
 
-            // Any device activity resets the 2-minute inactivity timer
-            ['mousemove', 'keydown', 'touchstart', 'click', 'scroll'].forEach(evt => {
-                document.addEventListener(evt, resetInactivityTimer, { passive: true });
-            });
+            // Note: device-event listeners that previously reset a front-end inactivity
+            // timer have been removed. Session expiry is now server-side only (60 min).
+            // The frontend detects expiry via HTTP 404 from /api/session/log and /api/chat.
 
             initialized = true;
-
-            // Load voices for TTS
-            // if ('speechSynthesis' in window) {
-            //     // Load voices
-            //     window.speechSynthesis.onvoiceschanged = () => {
-            //         window.speechSynthesis.getVoices();
-            //     };
-            // }
-            // OpenAI TTS is used instead of browser speechSynthesis
         }
         // init();
         window.addEventListener('load', () => {
