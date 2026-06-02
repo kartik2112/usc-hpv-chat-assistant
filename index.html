@@ -1690,6 +1690,13 @@ body {
         // their fire-and-forget HTTP requests race to the server.
         let _eventSeq = 0;
 
+        // Monotonically increasing sequence counter for the messages array.
+        // syncMessagesToSession() is fire-and-forget, so an older (smaller)
+        // snapshot can arrive at the server AFTER a newer one. The server uses
+        // this seq to reject stale overwrites so the conversation tab always
+        // ends up with the most complete history.
+        let _messagesSeq = 0;
+
         // Function to add events to the log
         // `extra` lets callers attach additional fields to the persisted event
         // object (e.g. the RAG `references` retrieved for a chat response).
@@ -1776,7 +1783,7 @@ body {
                 const resp = await fetch(BACKEND_DOMAIN + '/api/session/end', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sid, messages: nonEmptyHistory })
+                    body: JSON.stringify({ session_id: sid, messages: nonEmptyHistory, messages_seq: ++_messagesSeq })
                 });
                 const data = await resp.json();
                 return data.summary || null;
@@ -1815,7 +1822,11 @@ body {
             fetch(BACKEND_DOMAIN + '/api/session/log', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: sessionId, messages: chatHistory })
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    messages: chatHistory,
+                    messages_seq: ++_messagesSeq   // lets the server drop stale, out-of-order syncs
+                })
             }).then(r => { if (r.status === 404) handleServerSessionGone(); }).catch(() => {});
         }
 
@@ -2842,6 +2853,7 @@ body {
             endSession();                // Fire-and-forget: saves to backend without blocking UI reset
             chatHistory = [];
             eventLog = [];
+            _messagesSeq = 0;   // fresh sequence for the next session
             messages.innerHTML = '';
             wasVoiceInput = false;
             stopSpeaking();
