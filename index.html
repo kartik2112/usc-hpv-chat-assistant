@@ -896,6 +896,114 @@ body {
   color: var(--color-btn-primary-text);
   border-color: var(--color-primary);
 }
+
+/* ===== Feature Tour (onboarding coachmarks) ===== */
+/* Blur everything in the app while the tour is active */
+.tour-active-blur {
+  filter: blur(5px);
+  transition: filter var(--duration-normal) var(--ease-standard);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Dim layer sits above the blurred app but below the spotlight */
+#tourDim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 10000;
+}
+
+/* Sharp clone of the highlighted element, rendered on top of the dim layer */
+.tour-spotlight-clone {
+  position: fixed;
+  z-index: 10002;
+  margin: 0 !important;
+  pointer-events: none;
+  box-shadow: 0 0 0 4px var(--color-usc-gold), 0 0 0 9px rgba(255, 204, 0, 0.35),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-base);
+  background-color: var(--color-surface);
+  animation: tourPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tourPulse {
+  0%, 100% { box-shadow: 0 0 0 4px var(--color-usc-gold), 0 0 0 9px rgba(255, 204, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 0 4px var(--color-usc-gold), 0 0 0 14px rgba(255, 204, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.35); }
+}
+
+/* Tooltip / explanation card */
+#tourTooltip {
+  position: fixed;
+  z-index: 10003;
+  max-width: 320px;
+  width: calc(100vw - 32px);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-16) var(--space-20);
+  font-family: var(--font-family-base);
+}
+
+#tourTooltip .tour-step-count {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-6);
+}
+
+#tourTooltip .tour-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--space-8);
+}
+
+#tourTooltip .tour-body {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-16);
+}
+
+#tourTooltip .tour-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+#tourTooltip .tour-actions-right {
+  display: flex;
+  gap: var(--space-8);
+  margin-left: auto;
+}
+
+.tour-skip-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
+  cursor: pointer;
+  padding: var(--space-6) var(--space-8);
+  text-decoration: underline;
+}
+
+.tour-skip-btn:hover { color: var(--color-text); }
+
+/* Tooltip arrow */
+#tourTooltip .tour-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  transform: rotate(45deg);
+}
     </style>
 </head>
 <body>
@@ -1343,6 +1451,35 @@ body {
                     date_of_birth: 'date of birth',
                     medical_record_number: 'medical record number',
                     address: 'street address'
+                },
+                tour: {
+                    stepLabel: 'Step {n} of {total}',
+                    skip: 'Skip tour',
+                    back: 'Back',
+                    next: 'Next',
+                    done: 'Got it',
+                    steps: [
+                        {
+                            target: 'userInput',
+                            title: 'Type your question',
+                            body: 'Have a question about HPV? Just type it here and press send. The assistant will give you a clear, easy-to-understand answer.'
+                        },
+                        {
+                            target: 'suggestionsArea',
+                            title: 'Try asking these',
+                            body: 'Not sure where to start? Tap any of these suggested questions to get going right away. More follow-up questions appear as you explore.'
+                        },
+                        {
+                            target: 'micBtn',
+                            title: 'Speak your question',
+                            body: 'Prefer to talk instead of type? Tap the microphone and ask your question out loud — your words will appear in the box automatically.'
+                        },
+                        {
+                            target: 'fontToggle',
+                            title: 'Make the text bigger',
+                            body: 'If the text is hard to read, tap here to enlarge it. Tap again at any time to return to the normal size.'
+                        }
+                    ]
                 }
             },
             es: {
@@ -1422,6 +1559,35 @@ body {
                     date_of_birth: 'fecha de nacimiento',
                     medical_record_number: 'número de registro médico',
                     address: 'dirección'
+                },
+                tour: {
+                    stepLabel: 'Paso {n} de {total}',
+                    skip: 'Omitir guía',
+                    back: 'Atrás',
+                    next: 'Siguiente',
+                    done: 'Entendido',
+                    steps: [
+                        {
+                            target: 'userInput',
+                            title: 'Escriba su pregunta',
+                            body: '¿Tiene una pregunta sobre el VPH? Escríbala aquí y presione enviar. El asistente le dará una respuesta clara y fácil de entender.'
+                        },
+                        {
+                            target: 'suggestionsArea',
+                            title: 'Intente preguntar esto',
+                            body: '¿No sabe por dónde empezar? Toque cualquiera de estas preguntas sugeridas para comenzar de inmediato. Aparecerán más preguntas a medida que explore.'
+                        },
+                        {
+                            target: 'micBtn',
+                            title: 'Diga su pregunta',
+                            body: '¿Prefiere hablar en lugar de escribir? Toque el micrófono y haga su pregunta en voz alta — sus palabras aparecerán en el cuadro automáticamente.'
+                        },
+                        {
+                            target: 'fontToggle',
+                            title: 'Agrande el texto',
+                            body: 'Si el texto es difícil de leer, toque aquí para agrandarlo. Toque nuevamente en cualquier momento para volver al tamaño normal.'
+                        }
+                    ]
                 }
             }
         };
@@ -1671,6 +1837,8 @@ body {
             addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.');
             // Show starter question pills now that the session is live
             renderStarterQuestions();
+            // Launch the guided feature tour once the layout has settled
+            setTimeout(startFeatureTour, 350);
         });
 
         // Initialize Speech Recognition
@@ -1765,10 +1933,13 @@ body {
             // closeSettingsBtn.textContent = t.close;
             
             renderStarterQuestions();
-            
+
             if (recognition) {
                 recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
             }
+
+            // If the feature tour is open, refresh its text in the new language
+            refreshTourLanguage();
         }
 
         function updateModalTranslations() {
@@ -2809,6 +2980,205 @@ body {
         //         saveApiKey();
         //     }
         // });
+
+        // ========== FEATURE TOUR (onboarding coachmarks) ==========
+        const featureTour = {
+            active: false,
+            index: 0,
+            dimEl: null,
+            cloneEl: null,
+            tooltipEl: null
+        };
+
+        function getTourSteps() {
+            return (translations[currentLang].tour && translations[currentLang].tour.steps) || [];
+        }
+
+        function startFeatureTour() {
+            const steps = getTourSteps();
+            if (!steps.length) return;
+            if (featureTour.active) return;
+            featureTour.active = true;
+            featureTour.index = 0;
+
+            const appContainer = document.querySelector('.app-container');
+            if (appContainer) appContainer.classList.add('tour-active-blur');
+
+            // Dim layer
+            const dim = document.createElement('div');
+            dim.id = 'tourDim';
+            dim.addEventListener('click', endFeatureTour); // click outside = dismiss
+            document.body.appendChild(dim);
+            featureTour.dimEl = dim;
+
+            // Lock background scroll
+            document.body.style.overflow = 'hidden';
+
+            window.addEventListener('resize', positionTourElements);
+            addEvent('Feature Tour', 'Started');
+            renderTourStep();
+        }
+
+        function renderTourStep() {
+            const steps = getTourSteps();
+            const t = translations[currentLang].tour;
+            const step = steps[featureTour.index];
+            if (!step) { endFeatureTour(); return; }
+
+            const target = document.getElementById(step.target);
+            if (!target) {
+                // Skip a target that isn't visible right now
+                if (featureTour.index < steps.length - 1) {
+                    featureTour.index++;
+                    renderTourStep();
+                } else {
+                    endFeatureTour();
+                }
+                return;
+            }
+
+            // --- Spotlight clone (sharp copy of the target on top of the blur) ---
+            if (featureTour.cloneEl) featureTour.cloneEl.remove();
+            const clone = target.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.classList.add('tour-spotlight-clone');
+            const cs = window.getComputedStyle(target);
+            clone.style.borderRadius = cs.borderRadius;
+            document.body.appendChild(clone);
+            featureTour.cloneEl = clone;
+
+            // --- Tooltip ---
+            if (featureTour.tooltipEl) featureTour.tooltipEl.remove();
+            const tooltip = document.createElement('div');
+            tooltip.id = 'tourTooltip';
+
+            const isFirst = featureTour.index === 0;
+            const isLast = featureTour.index === steps.length - 1;
+            const stepLabel = (t.stepLabel || 'Step {n} of {total}')
+                .replace('{n}', featureTour.index + 1)
+                .replace('{total}', steps.length);
+
+            tooltip.innerHTML = `
+                <div class="tour-arrow"></div>
+                <div class="tour-step-count"></div>
+                <div class="tour-title"></div>
+                <div class="tour-body"></div>
+                <div class="tour-actions">
+                    <button type="button" class="tour-skip-btn"></button>
+                    <div class="tour-actions-right">
+                        ${isFirst ? '' : '<button type="button" class="btn" id="tourBackBtn"></button>'}
+                        <button type="button" class="btn btn-primary" id="tourNextBtn"></button>
+                    </div>
+                </div>`;
+            tooltip.querySelector('.tour-step-count').textContent = stepLabel;
+            tooltip.querySelector('.tour-title').textContent = step.title;
+            tooltip.querySelector('.tour-body').textContent = step.body;
+            tooltip.querySelector('.tour-skip-btn').textContent = t.skip;
+            if (!isFirst) tooltip.querySelector('#tourBackBtn').textContent = t.back;
+            tooltip.querySelector('#tourNextBtn').textContent = isLast ? t.done : t.next;
+
+            tooltip.querySelector('.tour-skip-btn').addEventListener('click', endFeatureTour);
+            if (!isFirst) tooltip.querySelector('#tourBackBtn').addEventListener('click', tourPrev);
+            tooltip.querySelector('#tourNextBtn').addEventListener('click', tourNext);
+
+            document.body.appendChild(tooltip);
+            featureTour.tooltipEl = tooltip;
+
+            positionTourElements();
+        }
+
+        function positionTourElements() {
+            if (!featureTour.active) return;
+            const steps = getTourSteps();
+            const step = steps[featureTour.index];
+            if (!step) return;
+            const target = document.getElementById(step.target);
+            if (!target || !featureTour.cloneEl || !featureTour.tooltipEl) return;
+
+            const rect = target.getBoundingClientRect();
+
+            // Position the sharp clone exactly over the target
+            const clone = featureTour.cloneEl;
+            clone.style.left = rect.left + 'px';
+            clone.style.top = rect.top + 'px';
+            clone.style.width = rect.width + 'px';
+            clone.style.height = rect.height + 'px';
+
+            // Position the tooltip: prefer below the target, flip above if no room
+            const tooltip = featureTour.tooltipEl;
+            const arrow = tooltip.querySelector('.tour-arrow');
+            const gap = 16;
+            const tipRect = tooltip.getBoundingClientRect();
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            let placeBelow = (rect.bottom + gap + tipRect.height) <= vh;
+            // If neither fits cleanly, choose the side with more space
+            if (!placeBelow && rect.top - gap - tipRect.height < 0) {
+                placeBelow = (vh - rect.bottom) >= rect.top;
+            }
+
+            let top = placeBelow ? rect.bottom + gap : rect.top - gap - tipRect.height;
+            top = Math.max(8, Math.min(top, vh - tipRect.height - 8));
+
+            // Horizontally center on the target, clamped to viewport
+            let left = rect.left + rect.width / 2 - tipRect.width / 2;
+            left = Math.max(8, Math.min(left, vw - tipRect.width - 8));
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+
+            // Arrow points toward the target
+            const targetCenterX = rect.left + rect.width / 2;
+            let arrowLeft = targetCenterX - left - 7;
+            arrowLeft = Math.max(12, Math.min(arrowLeft, tipRect.width - 26));
+            arrow.style.left = arrowLeft + 'px';
+            if (placeBelow) {
+                arrow.style.top = '-7px';
+                arrow.style.borderRight = 'none';
+                arrow.style.borderBottom = 'none';
+            } else {
+                arrow.style.top = (tipRect.height - 7) + 'px';
+                arrow.style.borderLeft = 'none';
+                arrow.style.borderTop = 'none';
+            }
+        }
+
+        function tourNext() {
+            const steps = getTourSteps();
+            if (featureTour.index < steps.length - 1) {
+                featureTour.index++;
+                renderTourStep();
+            } else {
+                endFeatureTour();
+            }
+        }
+
+        function tourPrev() {
+            if (featureTour.index > 0) {
+                featureTour.index--;
+                renderTourStep();
+            }
+        }
+
+        function endFeatureTour() {
+            if (!featureTour.active) return;
+            featureTour.active = false;
+            window.removeEventListener('resize', positionTourElements);
+            if (featureTour.cloneEl) { featureTour.cloneEl.remove(); featureTour.cloneEl = null; }
+            if (featureTour.tooltipEl) { featureTour.tooltipEl.remove(); featureTour.tooltipEl = null; }
+            if (featureTour.dimEl) { featureTour.dimEl.remove(); featureTour.dimEl = null; }
+            const appContainer = document.querySelector('.app-container');
+            if (appContainer) appContainer.classList.remove('tour-active-blur');
+            document.body.style.overflow = '';
+            addEvent('Feature Tour', 'Ended');
+        }
+
+        // Re-render the active tour in the newly selected language
+        function refreshTourLanguage() {
+            if (featureTour.active) {
+                renderTourStep();
+            }
+        }
 
         // Initialize App
         function warmup_server() {
