@@ -637,6 +637,57 @@
             white-space: nowrap;
         }
 
+        /* ── RAG references (collapsible inside an event's Details cell) ──── */
+        .ref-details {
+            margin-top: 8px;
+        }
+        .ref-details > summary {
+            cursor: pointer;
+            display: inline-block;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+            padding: 2px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-full);
+            background: var(--color-secondary);
+            list-style: none;
+            user-select: none;
+        }
+        .ref-details > summary:hover { background: var(--color-background); }
+        .ref-details > summary::-webkit-details-marker { display: none; }
+        .ref-details[open] > summary { margin-bottom: 8px; }
+        .ref-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .ref-chunk {
+            border: 1px solid var(--color-border);
+            border-left: 3px solid var(--color-primary);
+            border-radius: var(--radius-md, 8px);
+            padding: 8px 10px;
+            background: var(--color-background);
+        }
+        .ref-src {
+            display: inline-block;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+            text-decoration: none;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+        .ref-src:hover { text-decoration: underline; }
+        .ref-text {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--color-text-secondary);
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
         /* ── Loading / Error states ──────────────────────────────────────── */
         .loading {
             display: flex;
@@ -1087,6 +1138,35 @@
         return `background:${bg};color:${fg};border:1px solid ${fg}40;`;
     }
 
+    // Pretty-name a source URL for the reference header (filename or host).
+    function refLabel(source) {
+        if (!source) return 'Source';
+        try {
+            const u = new URL(source);
+            const last = u.pathname.split('/').filter(Boolean).pop();
+            return last || u.hostname.replace(/^www\./, '');
+        } catch { return source; }
+    }
+
+    // Render retrieved RAG chunks for an event as a compact collapsible block.
+    // Returns '' when the event has no references (older sessions), so the
+    // events table is unchanged for sessions saved before this feature existed.
+    function renderReferences(refs) {
+        if (!Array.isArray(refs) || !refs.length) return '';
+        const items = refs.map((r, i) => `
+            <div class="ref-chunk">
+                <a class="ref-src" href="${escHtml(r.source || '#')}" target="_blank" rel="noopener noreferrer">
+                    ${i + 1}. ${escHtml(refLabel(r.source))}
+                </a>
+                <div class="ref-text">${escHtml(r.content || '')}</div>
+            </div>`).join('');
+        return `
+            <details class="ref-details">
+                <summary>📎 ${refs.length} RAG reference${refs.length > 1 ? 's' : ''}</summary>
+                <div class="ref-list">${items}</div>
+            </details>`;
+    }
+
     // ── Fetch all sessions ─────────────────────────────────────────────────────
     async function loadSessions() {
         document.getElementById('sessionList').innerHTML = `
@@ -1258,7 +1338,7 @@
                     <td class="event-time">${fmtOffset(base, e.timestamp)}</td>
                     <td><span class="event-type-badge" style="${eventColor(e.type)}">${escHtml(e.type)}</span></td>
                     <td style="font-size:12px;color:var(--color-text-secondary);">${escHtml(e.language || '—')}</td>
-                    <td style="font-size:12px;color:var(--color-text-secondary);">${escHtml(e.details || '')}</td>
+                    <td style="font-size:12px;color:var(--color-text-secondary);">${escHtml(e.details || '')}${renderReferences(e.references)}</td>
                 </tr>`).join('');
         }
 

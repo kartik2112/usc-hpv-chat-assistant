@@ -1525,7 +1525,10 @@ body {
         let _eventSeq = 0;
 
         // Function to add events to the log
-        function addEvent(eventType, eventDetails = "") {
+        // `extra` lets callers attach additional fields to the persisted event
+        // object (e.g. the RAG `references` retrieved for a chat response).
+        // Older sessions simply omit these fields, so this stays backward-compatible.
+        function addEvent(eventType, eventDetails = "", extra = null) {
             const timestamp = new Date().toISOString();
             const event = {
                 seq: ++_eventSeq,  // globally ordered within this page session
@@ -1534,6 +1537,9 @@ body {
                 language: currentLang,
                 details: eventDetails
             };
+            if (extra && typeof extra === 'object') {
+                Object.assign(event, extra);
+            }
             eventLog.push(event);
             console.log('Event logged:', event); // For debugging
 
@@ -2530,7 +2536,12 @@ body {
                             // Persist to history and sync to server session
                             add_message_to_chat_history('assistant', finalText);
                             syncMessagesToSession();
-                            addEvent("Chat API Response Received", finalText);
+                            // Attach the RAG chunks retrieved for this turn so the
+                            // sessions dashboard can show which references informed the answer.
+                            addEvent("Chat API Response Received", finalText,
+                                Array.isArray(evt.references) && evt.references.length
+                                    ? { references: evt.references }
+                                    : null);
 
                             if (wasVoiceInput) {
                                 speakText(finalText);
