@@ -744,13 +744,11 @@ body {
   font-size: 18px;
 }
 
-/* Back Button Container */
-#backButtonContainer {
-    animation: slideDown 0.1s ease-out;
-}
-
+/* Back Button */
 #backBtn {
-    padding: var(--space-10) var(--space-16);
+    padding: 0;
+    width: 36px;
+    height: 36px;
     background-color: var(--color-secondary);
     color: var(--color-text);
     border: 1px solid var(--color-border);
@@ -1013,12 +1011,6 @@ body {
 
             <!-- starter-questions kept in DOM for legacy JS compatibility but visually hidden via CSS -->
             <div id="starterQuestions" class="starter-questions"></div>
-            <div id="backButtonContainer" style="display: none; margin-bottom: 16px;">
-                <button id="backBtn" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px;">
-                    <span>← Back</span>
-                </button>
-            </div>
-            
             <div id="messages" class="messages"></div>
         </main>
 
@@ -1030,10 +1022,11 @@ body {
             </div>
             <div id="phiWarning" class="phi-warning hidden"></div>
             <div class="input-wrapper">
-                <input 
-                    type="text" 
-                    class="input-field" 
-                    id="userInput" 
+                <button id="backBtn" class="icon-btn" title="Back" style="display: none; flex-shrink: 0;">&#8592;</button>
+                <input
+                    type="text"
+                    class="input-field"
+                    id="userInput"
                     placeholder="Type your question here..."
                 />
                 <button class="icon-btn" id="micBtn" title="Voice input">
@@ -1491,7 +1484,6 @@ body {
         // const apiKeyLabel = document.getElementById('apiKeyLabel');
         // const apiKeyHelp = document.getElementById('apiKeyHelp');
         const endConversationBtn = document.getElementById('endConversationBtn');
-        const backButtonContainer = document.getElementById('backButtonContainer');
         const backBtn = document.getElementById('backBtn');
         const endConversationModal = document.getElementById('endConversationModal');
         const cancelEndBtn = document.getElementById('cancelEndBtn');
@@ -2005,35 +1997,33 @@ body {
 
         // Show the back button
         function showBackButton() {
-            const backButtonContainer = document.getElementById('backButtonContainer');
-            if (backButtonContainer) {
-                backButtonContainer.style.display = 'block';
-            }
+            const btn = document.getElementById('backBtn');
+            if (btn) btn.style.display = 'flex';
         }
 
         // Hide the back button
         function hideBackButton() {
-            const backButtonContainer = document.getElementById('backButtonContainer');
-            if (backButtonContainer) {
-                backButtonContainer.style.display = 'none';
-            }
+            const btn = document.getElementById('backBtn');
+            if (btn) btn.style.display = 'none';
         }
 
-        // Handle back button click - Return to starter questions
+        // Handle back button click - Return to starter questions (retains conversation messages)
         function handleBackButton() {
-            // Clear the chat
-            messages.innerHTML = '';
-
-            // Reset chat history
-            chatHistory = [];
-
             // Stop any speech
             stopSpeaking();
 
-            // Show the starter questions (empty state + starter pills)
-            showEmptyState();
+            // Keep the existing conversation in view and do NOT re-show the
+            // welcome/empty-state message — the patient has already started chatting.
+            hideEmptyState();
 
-            // Hide the back button
+            // Re-show the initial "Try asking" starter pills. We bypass
+            // renderStarterQuestions() here because it short-circuits when a
+            // conversation exists (chatHistory.length > 0), which would otherwise
+            // leave the suggestions area empty.
+            const starterLabel = currentLang === 'en' ? 'Try asking:' : 'Intenta preguntar:';
+            showSuggestionPills(initialSuggestions, starterLabel, (suggestion) => handleSuggestionClick(suggestion));
+
+            // Hide the back button now that we're back at the starter questions
             hideBackButton();
 
             // Reset processing flag
