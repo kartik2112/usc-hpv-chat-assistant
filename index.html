@@ -1870,12 +1870,13 @@ body {
         acceptBtn.addEventListener('click', async function () {
             overlay.style.display = 'none';
             syncGlobalLangToggle(); // hide while neither overlay nor tour is active
-            await initSession(); // Start server-side session only after consent is given
-            addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.');
-            // Show starter question pills now that the session is live
+            // Show starter question pills and launch the tour immediately —
+            // no network wait, no artificial delay, so the UI feels continuous.
             renderStarterQuestions();
-            // Launch the guided feature tour once the layout has settled
-            setTimeout(startFeatureTour, 350);
+            requestAnimationFrame(startFeatureTour);
+            // Init session in background; addEvent syncs once sessionId is set.
+            await initSession();
+            addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.');
         });
 
         // Initialize Speech Recognition
