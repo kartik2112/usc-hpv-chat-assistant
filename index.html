@@ -1004,6 +1004,24 @@ body {
   border: 1px solid var(--color-card-border);
   transform: rotate(45deg);
 }
+
+/* ===== Floating language toggle =====
+   Lives at <body> level so it is NOT a descendant of .app-container and
+   therefore escapes both the disclaimer overlay's stacking context and the
+   tour's blur filter. Shown only while the header toggle is obscured
+   (disclaimer overlay visible or feature tour active); the header toggle
+   handles the normal chat state, keeping that UI pixel-identical. */
+#globalLangToggle {
+  position: fixed;
+  /* left/top are set in JS to overlay the in-header toggle exactly, so the two
+     read as a single button in one place — never two instances at once. */
+  z-index: 10011; /* above disclaimer overlay (9999) and tour tooltip (10003) */
+  display: none;
+  margin: 0;
+}
+#globalLangToggle.is-visible {
+  display: inline-block;
+}
     </style>
 </head>
 <body>
@@ -1073,6 +1091,12 @@ body {
         </div>
     </div>
     <!-- DISCLAIMER OVERLAY END -->
+
+    <!-- Floating language toggle: stays visible and clickable in every UI state
+         (disclaimer prompt + feature tour), where the in-header toggle is
+         obscured. Mirrors #langToggle and shares the same translation logic. -->
+    <button class="btn btn-primary" id="globalLangToggle" type="button" aria-label="Toggle language">Español</button>
+
     <div class="app-container">
         <!-- Settings Panel -->
         <!-- <div id="settingsPanel" class="settings-panel hidden">
@@ -1631,6 +1655,7 @@ body {
         const headerTitle = document.getElementById('headerTitle');
         const headerSubtitle = document.getElementById('headerSubtitle');
         const langToggle = document.getElementById('langToggle');
+        const globalLangToggle = document.getElementById('globalLangToggle');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
         const micBtn = document.getElementById('micBtn');
@@ -1844,6 +1869,7 @@ body {
 
         acceptBtn.addEventListener('click', async function () {
             overlay.style.display = 'none';
+            syncGlobalLangToggle(); // hide while neither overlay nor tour is active
             await initSession(); // Start server-side session only after consent is given
             addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.');
             // Show starter question pills now that the session is live
@@ -1928,6 +1954,7 @@ body {
             emptyTitle.textContent = t.emptyTitle;
             emptySubtitle.textContent = t.emptySubtitle;
             langToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
+            globalLangToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
             if (initialized) {
                 addEvent('Button Click', "Language Toggle to " + (currentLang === 'en' ? 'Español' : 'English'));
             }
@@ -2847,6 +2874,29 @@ body {
         // acceptBtn click handler after the patient clicks "I Understand and Agree".
         function showDisclaimer() {
             overlay.style.display = 'flex';
+            syncGlobalLangToggle();
+        }
+
+        // Show the floating language toggle only while the in-header toggle is
+        // obscured — i.e. when the disclaimer overlay is up or the feature tour
+        // is running. In the normal chat state it stays hidden and the header
+        // toggle is used, so that UI is unchanged.
+        function syncGlobalLangToggle() {
+            const overlayVisible = overlay && overlay.style.display !== 'none';
+            const show = overlayVisible || featureTour.active;
+            if (show) positionGlobalLangToggle(); // place it before revealing to avoid a flash
+            globalLangToggle.classList.toggle('is-visible', show);
+        }
+
+        // Overlay the floating toggle exactly on top of the in-header toggle.
+        // Both share the same classes and label text, so the overlap reads as a
+        // single button that stays in one spot across every UI state — you never
+        // see two copies. The header toggle keeps its layout position even when
+        // covered (disclaimer) or blurred (tour), so its rect is always correct.
+        function positionGlobalLangToggle() {
+            const r = langToggle.getBoundingClientRect();
+            globalLangToggle.style.left = r.left + 'px';
+            globalLangToggle.style.top = r.top + 'px';
         }
 
         async function startOver() {
@@ -2904,6 +2954,22 @@ body {
             currentLang = currentLang === 'en' ? 'es' : 'en';
             updateLanguage();
             showDisclaimer();
+        });
+
+        // Floating toggle used during the disclaimer + tour. Flips the language
+        // and re-renders all text in place (updateLanguage re-renders the
+        // disclaimer body and, if the tour is open, the current tour step).
+        // It deliberately does NOT call showDisclaimer(), so toggling language
+        // mid-tour won't pop the disclaimer over the tour.
+        globalLangToggle.addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'es' : 'en';
+            updateLanguage();
+            positionGlobalLangToggle(); // header labels changed width — re-align over the header toggle
+        });
+
+        // Keep the floating toggle aligned over the header toggle on layout changes
+        window.addEventListener('resize', () => {
+            if (globalLangToggle.classList.contains('is-visible')) positionGlobalLangToggle();
         });
 
         endConversationBtn.addEventListener('click', showEndConversationModal);
@@ -3015,6 +3081,7 @@ body {
 
             const appContainer = document.querySelector('.app-container');
             if (appContainer) appContainer.classList.add('tour-active-blur');
+            syncGlobalLangToggle(); // header toggle is now blurred — show the floating one
 
             // Dim layer
             const dim = document.createElement('div');
@@ -3182,6 +3249,7 @@ body {
             const appContainer = document.querySelector('.app-container');
             if (appContainer) appContainer.classList.remove('tour-active-blur');
             document.body.style.overflow = '';
+            syncGlobalLangToggle(); // back to normal chat — hide floating, header toggle takes over
             addEvent('Feature Tour', 'Ended');
         }
 
@@ -3214,6 +3282,7 @@ body {
             updateModalTranslations();
             renderStarterQuestions();
             initBackButton();
+            syncGlobalLangToggle(); // disclaimer overlay is up on load — show the floating toggle
             warmup_server();
             // initSession() is intentionally NOT called here — it is called
             // inside the acceptBtn click handler, after the patient accepts
