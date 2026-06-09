@@ -940,6 +940,9 @@
                     📊 Events
                     <span class="tab-count" id="tabCountEvts">0</span>
                 </button>
+                <button class="tab-btn" data-tab="models">
+                    🤖 Model Details
+                </button>
             </div>
 
             <div class="tab-content">
@@ -967,6 +970,10 @@
                             <tbody id="eventsTableBody"></tbody>
                         </table>
                     </div>
+                </div>
+                <!-- Model Details -->
+                <div class="tab-pane" id="pane-models">
+                    <div class="summary-grid" id="modelDetailsGrid"></div>
                 </div>
             </div>
 
@@ -1341,6 +1348,31 @@
                     <td style="font-size:12px;color:var(--color-text-secondary);">${escHtml(e.details || '')}${renderReferences(e.references)}</td>
                 </tr>`).join('');
         }
+
+        // ── Model Details pane ──
+        const textModel  = s.text_model  || 'openai-gpt-5-mini';
+        const audioModel = s.audio_model || 'openai-tts-1';
+        document.getElementById('modelDetailsGrid').innerHTML = `
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <div class="summary-card-icon icon-bg-cardinal">💬</div>
+                    <div>
+                        <div class="summary-card-title">Text Model</div>
+                        <div style="font-size:12px;color:var(--color-text-secondary);">Used for chat responses and summaries</div>
+                    </div>
+                </div>
+                <div class="summary-card-body" style="font-family:var(--font-family-mono);font-size:15px;">${escHtml(textModel)}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <div class="summary-card-icon icon-bg-gold">🔊</div>
+                    <div>
+                        <div class="summary-card-title">Audio Model</div>
+                        <div style="font-size:12px;color:var(--color-text-secondary);">Used for text-to-speech synthesis</div>
+                    </div>
+                </div>
+                <div class="summary-card-body" style="font-family:var(--font-family-mono);font-size:15px;">${escHtml(audioModel)}</div>
+            </div>`;
 
         // Show content
         placeholder.style.display = 'none';
