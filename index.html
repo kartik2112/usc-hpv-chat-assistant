@@ -1957,6 +1957,102 @@ body {
             }).then(r => { if (r.status === 404) handleServerSessionGone(); }).catch(() => {});
         }
 
+        // ==========================================================================
+        // SMART INACTIVITY / CLOSE DETECTION
+        // --------------------------------------------------------------------------
+        // Two complementary mechanisms keep the server's view of "is this session
+        // still alive?" accurate without flooding the backend with heartbeats:
+        //
+        //   1. Throttled activity heartbeat — any real user interaction (click,
+        //      keypress, scroll, mouse move, touch) counts as activity and touches
+        //      the session's last_activity on the server, but at most ONE request
+        //      every HEARTBEAT_THROTTLE_MS. A user who scrolls continuously still
+        //      generates ≤ 1 request per throttle window; an idle user generates
+        //      zero. Combined with the short server-side SESSION_TIMEOUT_MINUTES,
+        //      an abandoned tab is expired (and surfaced in the dashboard) quickly.
+        //
+        //   2. End-on-close beacon — when the tab is actually being unloaded
+        //      (closed, or navigated away), navigator.sendBeacon reliably delivers
+        //      a final /api/session/end even as the page goes away. This makes an
+        //      intentionally- or accidentally-closed conversation appear in the
+        //      dashboard almost immediately, instead of waiting for the timeout.
+        // ==========================================================================
+
+        const HEARTBEAT_THROTTLE_MS = 120000;   // ≤ 1 activity ping per 2 minutes
+        let _lastHeartbeat = 0;
+
+        function sendActivityHeartbeat() {
+            if (!sessionId) return;
+            const now = Date.now();
+            if (now - _lastHeartbeat < HEARTBEAT_THROTTLE_MS) return;   // throttle
+            _lastHeartbeat = now;
+            fetch(BACKEND_DOMAIN + '/api/session/activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId })
+            }).then(r => { if (r.status === 404) handleServerSessionGone(); }).catch(() => {});
+        }
+
+        // Passive listeners so they never block scrolling/input. Scrolling and
+        // button clicks both count as keeping the conversation on-going.
+        ['click', 'keydown', 'scroll', 'mousemove', 'touchstart'].forEach(ev =>
+            window.addEventListener(ev, sendActivityHeartbeat, { passive: true })
+        );
+
+        // Fire-and-forget POST that survives page unload. Returns false if the
+        // browser refused to queue the beacon (payload too large / unsupported).
+        function beaconPost(path, bodyObj) {
+            try {
+                if (!navigator.sendBeacon) return false;
+                const blob = new Blob([JSON.stringify(bodyObj)], { type: 'application/json' });
+                return navigator.sendBeacon(BACKEND_DOMAIN + path, blob);
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // End the session immediately when the tab is closed/unloaded. Reuses the
+        // same /api/session/end contract as the explicit "End conversation" button.
+        function endSessionViaBeacon() {
+            if (!sessionId) return;
+            const nonEmptyHistory = chatHistory.filter(m => m.content && m.content.trim() !== '');
+            // Nothing worth saving — let the server timeout reclaim the empty session.
+            if (nonEmptyHistory.length === 0) { sessionId = null; return; }
+            const sid = sessionId;
+            sessionId = null;   // make any later end() / beacon a no-op (no double save)
+            beaconPost('/api/session/end', {
+                session_id: sid,
+                messages: nonEmptyHistory,
+                messages_seq: ++_messagesSeq
+            });
+        }
+
+        // pagehide is the most reliable unload signal across browsers (incl. mobile
+        // Safari, where beforeunload is unreliable). e.persisted === true means the
+        // page is entering the bfcache for a back/forward navigation and may be
+        // restored — in that case we must NOT end the session.
+        window.addEventListener('pagehide', (e) => {
+            if (!e.persisted) endSessionViaBeacon();
+        });
+
+        // Belt-and-suspenders: when the tab is hidden (switched away, phone locked,
+        // app backgrounded) push the latest messages to the server via beacon. This
+        // is NOT treated as an end — the user may return — but it guarantees the
+        // server has the freshest transcript if the tab is later abandoned and
+        // reclaimed by the inactivity timeout. Cheap: one beacon per hide.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && sessionId) {
+                const nonEmptyHistory = chatHistory.filter(m => m.content && m.content.trim() !== '');
+                if (nonEmptyHistory.length > 0) {
+                    beaconPost('/api/session/log', {
+                        session_id: sessionId,
+                        messages: nonEmptyHistory,
+                        messages_seq: ++_messagesSeq
+                    });
+                }
+            }
+        });
+
         // ============================================
 
         function SeriouslyStopListening(recognition)

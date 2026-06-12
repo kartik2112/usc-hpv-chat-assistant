@@ -1058,7 +1058,7 @@
             <div class="search-wrap list-search-wrap">
                 <span class="search-icon">🔍</span>
                 <input class="search-input" type="text" id="searchInput"
-                       placeholder="Search sessions…" autocomplete="off">
+                       placeholder="Search sessions by ID, date, or summary…" autocomplete="off">
             </div>
 
             <!-- Filters + bulk actions -->
@@ -1423,12 +1423,13 @@
                 if (dateStart && (!key || key < dateStart)) return false;
                 if (dateEnd && (!key || key > dateEnd)) return false;
             }
-            // Search filter
+            // Search filter — matches date, summary text, or session ID.
             if (q) {
                 const dateStr = fmtDateTime(s.created_at).toLowerCase();
                 const pqs = (s.summary?.patient_questions || '').toLowerCase();
                 const ais = (s.summary?.action_items || '').toLowerCase();
-                if (!(dateStr.includes(q) || pqs.includes(q) || ais.includes(q))) return false;
+                const sid = (s.session_id || '').toLowerCase();
+                if (!(dateStr.includes(q) || pqs.includes(q) || ais.includes(q) || sid.includes(q))) return false;
             }
             return true;
         });
