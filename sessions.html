@@ -350,16 +350,22 @@
             margin-right: auto;
         }
 
-        /* ── Per-card selection controls ─────────────────────────────────── */
-        .card-controls {
+        /* ── Per-card selection controls (single header line) ────────────── */
+        .card-header-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: var(--space-6);
+            gap: var(--space-10);
+            margin-bottom: var(--space-8);
+        }
+        .card-header-row .card-date {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 0;            /* allow the date to shrink/ellipsis */
         }
         .card-select {
             width: 16px;
             height: 16px;
+            flex-shrink: 0;
             cursor: pointer;
             accent-color: var(--color-primary);
         }
@@ -367,9 +373,10 @@
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             line-height: 1;
-            padding: 2px;
+            padding: 0;
+            flex-shrink: 0;
             color: var(--color-gray-300);
             transition: transform var(--duration-fast), color var(--duration-fast);
         }
@@ -1451,15 +1458,16 @@
                 <div class="session-card${s.filename === activeFilename ? ' active' : ''}${isSel ? ' selected' : ''}"
                      data-filename="${fn}"
                      onclick="selectSession('${fn}')">
-                    <div class="card-controls" onclick="event.stopPropagation();">
+                    <div class="card-header-row">
                         <input type="checkbox" class="card-select" ${isSel ? 'checked' : ''}
                                aria-label="Select session"
+                               onclick="event.stopPropagation();"
                                onchange="toggleSelect('${fn}', this.checked)">
+                        <div class="card-date">${fmtDateTime(s.created_at)}${s.merged ? ' <span class="card-merged-badge">merged</span>' : ''}</div>
                         <button class="card-fav${isFav ? ' is-fav' : ''}"
                                 title="${isFav ? 'Unfavorite' : 'Mark as favorite'}"
-                                onclick="toggleFavorite('${fn}', this)">${isFav ? '★' : '☆'}</button>
+                                onclick="event.stopPropagation(); toggleFavorite('${fn}', this)">${isFav ? '★' : '☆'}</button>
                     </div>
-                    <div class="card-date">${fmtDateTime(s.created_at)}${s.merged ? ' <span class="card-merged-badge">merged</span>' : ''}</div>
                     <div class="card-meta">
                         <span class="card-chip">📊 ${s.event_count ?? 0} events</span>
                         ${dur ? `<span class="card-chip">⏱ ${dur}</span>` : ''}
