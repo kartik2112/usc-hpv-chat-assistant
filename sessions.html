@@ -1323,6 +1323,29 @@
         // ── Summary pane ──
         const pqs = s.summary?.patient_questions || 'No patient questions recorded.';
         const ais = s.summary?.action_items       || 'No action items generated.';
+
+        // Pre-chat questionnaire responses (only rendered when present).
+        const survey = Array.isArray(s.survey_responses) ? s.survey_responses : [];
+        const surveyCard = survey.length ? `
+            <div class="summary-card" style="grid-column:1/-1;">
+                <div class="summary-card-header">
+                    <div class="summary-card-icon icon-bg-cardinal">📋</div>
+                    <div>
+                        <div class="summary-card-title">Questionnaire Responses</div>
+                        <div style="font-size:12px;color:var(--color-text-secondary);">Pre-chat HPV knowledge &amp; attitudes survey</div>
+                    </div>
+                </div>
+                <div class="summary-card-body">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        ${survey.map(r => `
+                            <tr style="border-bottom:1px solid var(--color-card-border);">
+                                <td style="padding:7px 12px 7px 0;color:var(--color-text);vertical-align:top;">${escHtml(r.question || '')}</td>
+                                <td style="padding:7px 0;font-weight:600;white-space:nowrap;text-align:right;vertical-align:top;">${escHtml(r.answer || '')}</td>
+                            </tr>`).join('')}
+                    </table>
+                </div>
+            </div>` : '';
+
         document.getElementById('summaryGrid').innerHTML = `
             <div class="summary-card">
                 <div class="summary-card-header">
@@ -1343,7 +1366,8 @@
                     </div>
                 </div>
                 <div class="summary-card-body">${escHtml(ais)}</div>
-            </div>`;
+            </div>
+            ${surveyCard}`;
 
         // ── Conversation pane ──
         const thread = document.getElementById('conversationThread');

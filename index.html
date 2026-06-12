@@ -1701,6 +1701,51 @@ body {
             Keep answers very brief, concise, and to the point.`
         };
 
+        // ========== PRE-CHAT QUESTIONNAIRE (URL query params) ==========
+        // The patient's pre-chat HPV knowledge & attitudes survey answers can be
+        // passed in via URL query params:
+        //   Knowledge items  → qk1..qk6, values 1/2/3 (True / False / Don't Know)
+        //   Attitude items   → qm1..qm6, values 1..5 (Strongly disagree … Strongly agree)
+        // When present, they are resolved to {question, answer} pairs, sent to the
+        // backend, injected into the system prompt for every OpenAI call, stored on
+        // the session, and shown in the sessions dashboard.
+        const SURVEY_QUESTIONS = {
+            qk1: { question: "Only women can get infected with HPV.", answers: { "1": "True", "2": "False", "3": "Don't Know" } },
+            qk2: { question: "A person could have HPV for many years without knowing it.", answers: { "1": "True", "2": "False", "3": "Don't Know" } },
+            qk3: { question: "HPV causes cancer in women only.", answers: { "1": "True", "2": "False", "3": "Don't Know" } },
+            qk4: { question: "Most people infected with HPV have visible signs or symptoms of the infection.", answers: { "1": "True", "2": "False", "3": "Don't Know" } },
+            qk5: { question: "Nearly all sexually active people will become infected with HPV at some point.", answers: { "1": "True", "2": "False", "3": "Don't Know" } },
+            qk6: { question: "HPV can be spread through dirty public toilets or poor hygiene.", answers: { "1": "True", "2": "False", "3": "Don't Know" } },
+            qm1: { question: "The HPV vaccine is only recommended for girls and women.", answers: { "1": "Strongly disagree", "2": "Disagree", "3": "Neither agree nor disagree", "4": "Agree", "5": "Strongly agree" } },
+            qm2: { question: "The HPV vaccine can cause infertility / affect someone's ability to have a child.", answers: { "1": "Strongly disagree", "2": "Disagree", "3": "Neither agree nor disagree", "4": "Agree", "5": "Strongly agree" } },
+            qm3: { question: "Getting the HPV vaccine could make others think I am promiscuous.", answers: { "1": "Strongly disagree", "2": "Disagree", "3": "Neither agree nor disagree", "4": "Agree", "5": "Strongly agree" } },
+            qm4: { question: "The HPV vaccine can cause serious long-term health problems or side effects.", answers: { "1": "Strongly disagree", "2": "Disagree", "3": "Neither agree nor disagree", "4": "Agree", "5": "Strongly agree" } },
+            qm5: { question: "I do not need the HPV vaccine because I am not at risk for HPV infection.", answers: { "1": "Strongly disagree", "2": "Disagree", "3": "Neither agree nor disagree", "4": "Agree", "5": "Strongly agree" } },
+            qm6: { question: "Doctors strongly recommend the HPV vaccine.", answers: { "1": "Strongly disagree", "2": "Disagree", "3": "Neither agree nor disagree", "4": "Agree", "5": "Strongly agree" } }
+        };
+        // Stable order used when building the prompt / payload.
+        const SURVEY_KEY_ORDER = ["qk1", "qk2", "qk3", "qk4", "qk5", "qk6", "qm1", "qm2", "qm3", "qm4", "qm5", "qm6"];
+
+        // Parse the URL query string into an ordered array of resolved responses.
+        // Invalid / out-of-range values are ignored silently.
+        function parseSurveyResponses() {
+            const params = new URLSearchParams(window.location.search);
+            const responses = [];
+            SURVEY_KEY_ORDER.forEach(key => {
+                if (!params.has(key)) return;
+                const def = SURVEY_QUESTIONS[key];
+                if (!def) return;
+                const raw = (params.get(key) || '').trim();
+                const answer = def.answers[raw];
+                if (!answer) return; // skip values outside the allowed range
+                responses.push({ key: key, question: def.question, answer: answer });
+            });
+            return responses;
+        }
+
+        // Resolved once at page load — the questionnaire is fixed for the session.
+        const surveyResponses = parseSurveyResponses();
+
         // DOM Elements
         const overlay = document.getElementById('disclaimer-overlay');
         const acceptBtn = document.getElementById('disclaimer-accept-btn');
@@ -1815,7 +1860,10 @@ body {
             try {
                 const resp = await fetch(BACKEND_DOMAIN + '/api/session/start', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    // Send the pre-chat questionnaire so the backend stores it on the
+                    // session (persisted to disk + shown in the dashboard).
+                    body: JSON.stringify({ survey_responses: surveyResponses })
                 });
                 if (resp.status === 404) {
                     // Server has no record of this session — treat as expired
@@ -2696,7 +2744,8 @@ body {
                         messages: messagesArray,
                         max_tokens: OPENAI_CONFIG.maxTokens,
                         temperature: OPENAI_CONFIG.temperature,
-                        language: currentLang   // backend uses this to select the right spaCy PHI model
+                        language: currentLang,   // backend uses this to select the right spaCy PHI model
+                        survey_responses: surveyResponses   // injected into the system prompt server-side
                     })
                 });
 
