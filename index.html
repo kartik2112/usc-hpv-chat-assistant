@@ -2507,12 +2507,12 @@ body {
             // Pass empty followups — they are shown in the suggestions area, not the bubble
             addAssistantMessage(answer, []);
 
-            // Show follow-up pills in the suggestions area (if any), otherwise hide
+            // Show follow-up pills in the suggestions area (if any).
+            // If the clicked suggestion has no further follow-ups, leave the
+            // current pills visible so the user can still pick another one.
             if (followups && followups.length > 0) {
                 const followupLabel = currentLang === 'en' ? 'Follow-up questions:' : 'Preguntas de seguimiento:';
                 showSuggestionPills(followups, followupLabel, (fu) => handleSuggestionClick(fu));
-            } else {
-                hideSuggestionPills();
             }
 
             // Speak if voice was used
