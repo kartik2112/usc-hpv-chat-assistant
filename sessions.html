@@ -273,6 +273,123 @@
         .list-search-wrap .search-input {
             width: 100%;
         }
+
+        /* ── List Toolbar (filters + bulk actions) ───────────────────────── */
+        .list-toolbar {
+            margin-top: var(--space-10);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-8);
+        }
+        .toolbar-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+            flex-wrap: wrap;
+        }
+        .btn-sm {
+            padding: var(--space-4) var(--space-10);
+            font-size: var(--font-size-xs);
+            border-radius: var(--radius-sm);
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .btn-danger {
+            background: var(--color-primary);
+            color: var(--color-white);
+            border: none;
+        }
+        .btn-danger:hover { background: var(--color-primary-hover); }
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-6);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-full);
+            padding: var(--space-4) var(--space-10);
+            cursor: pointer;
+            user-select: none;
+            transition: background var(--duration-fast), color var(--duration-fast);
+        }
+        .filter-chip:hover { background: var(--color-secondary-hover); }
+        .filter-chip.active {
+            background: rgba(255,204,0,0.18);
+            color: var(--color-brown-600);
+            border-color: var(--color-usc-gold);
+        }
+        .filter-chip input { display: none; }
+        .toolbar-select,
+        .toolbar-date {
+            font-family: var(--font-family-base);
+            font-size: var(--font-size-xs);
+            padding: var(--space-4) var(--space-8);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-background);
+            color: var(--color-text);
+            outline: none;
+        }
+        .toolbar-select:focus,
+        .toolbar-date:focus { border-color: var(--color-primary); }
+        .date-range-row span { color: var(--color-text-secondary); font-size: var(--font-size-xs); }
+        .selection-row {
+            background: var(--color-usc-gold-light);
+            border: 1px solid rgba(255,204,0,0.5);
+            border-radius: var(--radius-base);
+            padding: var(--space-6) var(--space-8);
+        }
+        .sel-count {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text);
+            margin-right: auto;
+        }
+
+        /* ── Per-card selection controls ─────────────────────────────────── */
+        .card-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-6);
+        }
+        .card-select {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--color-primary);
+        }
+        .card-fav {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 2px;
+            color: var(--color-gray-300);
+            transition: transform var(--duration-fast), color var(--duration-fast);
+        }
+        .card-fav:hover { transform: scale(1.15); }
+        .card-fav.is-fav { color: var(--color-usc-gold); }
+        .session-card.selected {
+            background: var(--color-usc-gold-light);
+            box-shadow: inset 3px 0 0 var(--color-usc-gold);
+        }
+        .card-merged-badge {
+            font-size: 10px;
+            font-weight: var(--font-weight-bold);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--color-teal-500);
+            background: rgba(33,128,141,0.1);
+            border: 1px solid rgba(33,128,141,0.25);
+            border-radius: var(--radius-full);
+            padding: 1px 7px;
+        }
         /* Collapsed left panel */
         .session-list-panel.collapsed {
             width: 0;
@@ -936,6 +1053,33 @@
                 <input class="search-input" type="text" id="searchInput"
                        placeholder="Search sessions…" autocomplete="off">
             </div>
+
+            <!-- Filters + bulk actions -->
+            <div class="list-toolbar">
+                <div class="toolbar-row">
+                    <label class="filter-chip" id="favFilterChip">
+                        <input type="checkbox" id="favFilter">
+                        <span>★ Favorites</span>
+                    </label>
+                    <select class="toolbar-select" id="dateFilter" title="Filter by date">
+                        <option value="all">All dates</option>
+                        <option value="today">Today</option>
+                        <option value="custom">Date range…</option>
+                    </select>
+                </div>
+                <div class="toolbar-row date-range-row" id="dateRangeRow" style="display:none;">
+                    <input type="date" class="toolbar-date" id="dateStart" title="Start date">
+                    <span>→</span>
+                    <input type="date" class="toolbar-date" id="dateEnd" title="End date">
+                </div>
+                <div class="toolbar-row selection-row" id="selectionRow" style="display:none;">
+                    <span class="sel-count" id="selCount">0 selected</span>
+                    <button class="btn btn-sm" id="mergeBtn" disabled
+                            title="Select 2 or 3 sessions to merge">⤵ Merge</button>
+                    <button class="btn btn-sm btn-danger" id="deleteBtn" disabled>🗑 Delete</button>
+                    <button class="btn btn-sm" id="clearSelBtn" title="Clear selection">✕</button>
+                </div>
+            </div>
         </div>
         <div id="sessionList">
             <div class="loading">
@@ -1119,6 +1263,13 @@
     let allSessions = [];
     let activeFilename = null;
 
+    // Bulk-selection + filter state
+    const selectedFilenames = new Set();   // filenames ticked via card checkboxes
+    let favoritesOnly = false;             // ★ Favorites filter toggle
+    let dateMode = 'all';                  // 'all' | 'today' | 'custom'
+    let dateStart = '';                    // 'YYYY-MM-DD' (custom mode)
+    let dateEnd = '';                      // 'YYYY-MM-DD' (custom mode)
+
     // ── Helpers ────────────────────────────────────────────────────────────────
     function fmtDateTime(iso) {
         if (!iso) return '—';
@@ -1223,8 +1374,10 @@
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
             allSessions = data.sessions || [];
+            selectedFilenames.clear();      // drop stale selections after a reload
+            updateSelectionUI();
             updateStats();
-            renderList(allSessions);
+            applyFiltersAndRender();
         } catch (e) {
             document.getElementById('sessionList').innerHTML =
                 `<div class="error-banner">⚠️ Could not load sessions: ${escHtml(e.message)}</div>`;
@@ -1239,6 +1392,42 @@
         document.getElementById('statToday').textContent = todayCount;
     }
 
+    // Local 'YYYY-MM-DD' key for a timestamp (matches the displayed local date).
+    function localDateKey(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (isNaN(d)) return '';
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${d.getFullYear()}-${m}-${day}`;
+    }
+
+    // Apply search + favorites + date filters, then render.
+    function applyFiltersAndRender() {
+        const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+        const filtered = allSessions.filter(s => {
+            // Favorites filter
+            if (favoritesOnly && !s.favorite) return false;
+            // Date filter
+            if (dateMode === 'today') {
+                if (!isToday(s.created_at)) return false;
+            } else if (dateMode === 'custom') {
+                const key = localDateKey(s.created_at);
+                if (dateStart && (!key || key < dateStart)) return false;
+                if (dateEnd && (!key || key > dateEnd)) return false;
+            }
+            // Search filter
+            if (q) {
+                const dateStr = fmtDateTime(s.created_at).toLowerCase();
+                const pqs = (s.summary?.patient_questions || '').toLowerCase();
+                const ais = (s.summary?.action_items || '').toLowerCase();
+                if (!(dateStr.includes(q) || pqs.includes(q) || ais.includes(q))) return false;
+            }
+            return true;
+        });
+        renderList(filtered);
+    }
+
     function renderList(sessions) {
         const container = document.getElementById('sessionList');
         if (!sessions.length) {
@@ -1246,7 +1435,7 @@
                 <div class="empty-list">
                     <div class="empty-list-icon">🗂️</div>
                     <div style="font-weight:600;margin-bottom:6px;">No sessions found</div>
-                    <div style="font-size:13px;">Conversations will appear here after patients use the assistant.</div>
+                    <div style="font-size:13px;">No sessions match the current filters.</div>
                 </div>`;
             return;
         }
@@ -1255,11 +1444,22 @@
             const previewText = s.summary?.patient_questions
                 ? s.summary.patient_questions.replace(/^•\s*/gm, '').trim()
                 : 'No summary available.';
+            const fn = escHtml(s.filename);
+            const isSel = selectedFilenames.has(s.filename);
+            const isFav = !!s.favorite;
             return `
-                <div class="session-card${s.filename === activeFilename ? ' active' : ''}"
-                     data-filename="${escHtml(s.filename)}"
-                     onclick="selectSession('${escHtml(s.filename)}')">
-                    <div class="card-date">${fmtDateTime(s.created_at)}</div>
+                <div class="session-card${s.filename === activeFilename ? ' active' : ''}${isSel ? ' selected' : ''}"
+                     data-filename="${fn}"
+                     onclick="selectSession('${fn}')">
+                    <div class="card-controls" onclick="event.stopPropagation();">
+                        <input type="checkbox" class="card-select" ${isSel ? 'checked' : ''}
+                               aria-label="Select session"
+                               onchange="toggleSelect('${fn}', this.checked)">
+                        <button class="card-fav${isFav ? ' is-fav' : ''}"
+                                title="${isFav ? 'Unfavorite' : 'Mark as favorite'}"
+                                onclick="toggleFavorite('${fn}', this)">${isFav ? '★' : '☆'}</button>
+                    </div>
+                    <div class="card-date">${fmtDateTime(s.created_at)}${s.merged ? ' <span class="card-merged-badge">merged</span>' : ''}</div>
                     <div class="card-meta">
                         <span class="card-chip">📊 ${s.event_count ?? 0} events</span>
                         ${dur ? `<span class="card-chip">⏱ ${dur}</span>` : ''}
@@ -1267,6 +1467,137 @@
                     <div class="card-summary-preview">${escHtml(previewText)}</div>
                 </div>`;
         }).join('');
+    }
+
+    // ── Selection ────────────────────────────────────────────────────────────
+    function toggleSelect(filename, checked) {
+        if (checked) selectedFilenames.add(filename);
+        else selectedFilenames.delete(filename);
+        // Reflect the .selected style without a full re-render
+        const card = document.querySelector(`.session-card[data-filename="${CSS.escape(filename)}"]`);
+        if (card) card.classList.toggle('selected', checked);
+        updateSelectionUI();
+    }
+
+    function clearSelection() {
+        selectedFilenames.clear();
+        document.querySelectorAll('.card-select').forEach(cb => { cb.checked = false; });
+        document.querySelectorAll('.session-card.selected').forEach(c => c.classList.remove('selected'));
+        updateSelectionUI();
+    }
+
+    function updateSelectionUI() {
+        const n = selectedFilenames.size;
+        const row = document.getElementById('selectionRow');
+        row.style.display = n > 0 ? 'flex' : 'none';
+        document.getElementById('selCount').textContent =
+            `${n} selected${n > 3 ? ' — max 3 to merge' : ''}`;
+        document.getElementById('deleteBtn').disabled = n < 1;
+        const mergeBtn = document.getElementById('mergeBtn');
+        mergeBtn.disabled = n < 2 || n > 3;
+        mergeBtn.title = (n < 2)
+            ? 'Select 2 or 3 sessions to merge'
+            : (n > 3 ? 'Select at most 3 sessions to merge' : `Merge ${n} sessions`);
+    }
+
+    // ── Favorite toggle (optimistic + persisted) ──────────────────────────────
+    async function toggleFavorite(filename, btnEl) {
+        const sess = allSessions.find(s => s.filename === filename);
+        if (!sess) return;
+        const next = !sess.favorite;
+        sess.favorite = next;                       // optimistic
+        if (btnEl) {
+            btnEl.classList.toggle('is-fav', next);
+            btnEl.textContent = next ? '★' : '☆';
+            btnEl.title = next ? 'Unfavorite' : 'Mark as favorite';
+        }
+        try {
+            const resp = await authFetch(BACKEND + '/api/sessions/favorite', {
+                method: 'POST',
+                body: JSON.stringify({ filename, favorite: next })
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            // If the favorites filter is on, a now-unfavorited card should disappear.
+            if (favoritesOnly) applyFiltersAndRender();
+        } catch (e) {
+            sess.favorite = !next;                  // revert on failure
+            if (btnEl) {
+                btnEl.classList.toggle('is-fav', !next);
+                btnEl.textContent = !next ? '★' : '☆';
+            }
+            alert('Could not update favorite: ' + e.message);
+        }
+    }
+
+    // ── Bulk delete ────────────────────────────────────────────────────────────
+    async function bulkDelete() {
+        const files = [...selectedFilenames];
+        if (!files.length) return;
+        if (!confirm(`Delete ${files.length} session${files.length > 1 ? 's' : ''}? This permanently removes the saved transcript${files.length > 1 ? 's' : ''} and cannot be undone.`)) return;
+        const btn = document.getElementById('deleteBtn');
+        btn.disabled = true; btn.textContent = 'Deleting…';
+        try {
+            const resp = await authFetch(BACKEND + '/api/sessions/delete', {
+                method: 'POST',
+                body: JSON.stringify({ filenames: files })
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            if (data.errors && data.errors.length) {
+                alert(`Deleted ${data.count}. Some failed:\n` +
+                      data.errors.map(e => `• ${e.filename}: ${e.error}`).join('\n'));
+            }
+            // If the open session was deleted, reset the detail panel.
+            if (activeFilename && files.includes(activeFilename)) resetDetailPanel();
+            await loadSessions();
+        } catch (e) {
+            alert('Delete failed: ' + e.message);
+        } finally {
+            btn.textContent = '🗑 Delete';
+        }
+    }
+
+    // ── Merge ──────────────────────────────────────────────────────────────────
+    async function mergeSelected() {
+        const files = [...selectedFilenames];
+        if (files.length < 2 || files.length > 3) return;
+        if (!confirm(
+            `Merge these ${files.length} sessions into one combined session?\n\n` +
+            `• Ordered oldest → newest into a single timeline\n` +
+            `• Duplicate disclaimer / tour events removed (kept once)\n` +
+            `• A language-toggle marker is inserted if the language changes\n` +
+            `• Summary is regenerated from the combined conversation\n` +
+            `• The ${files.length} original sessions are deleted\n\n` +
+            `This cannot be undone.`
+        )) return;
+        const btn = document.getElementById('mergeBtn');
+        btn.disabled = true; btn.textContent = 'Merging…';
+        try {
+            const resp = await authFetch(BACKEND + '/api/sessions/merge', {
+                method: 'POST',
+                body: JSON.stringify({ filenames: files })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+            // Originals were deleted server-side; reset detail if one was open.
+            if (activeFilename && files.includes(activeFilename)) resetDetailPanel();
+            await loadSessions();
+            if (data.file) selectSession(data.file);    // open the new merged session
+        } catch (e) {
+            alert('Merge failed: ' + e.message);
+        } finally {
+            btn.textContent = '⤵ Merge';
+        }
+    }
+
+    function resetDetailPanel() {
+        activeFilename = null;
+        document.getElementById('detailPlaceholder').style.display = 'flex';
+        document.getElementById('detailPlaceholder').innerHTML = `
+            <span class="detail-placeholder-icon">🗂️</span>
+            <span class="detail-placeholder-title">Select a session to view details</span>
+            <span style="font-size:13px;color:var(--color-text-secondary);">Patient conversations are saved here after each session ends.</span>`;
+        document.getElementById('detailContent').style.display = 'none';
     }
 
     // ── Load single session detail ─────────────────────────────────────────────
@@ -1463,27 +1794,37 @@
     });
 
     // ── Search ─────────────────────────────────────────────────────────────────
-    document.getElementById('searchInput').addEventListener('input', function () {
-        const q = this.value.trim().toLowerCase();
-        if (!q) { renderList(allSessions); return; }
-        const filtered = allSessions.filter(s => {
-            const dateStr = fmtDateTime(s.created_at).toLowerCase();
-            const pqs = (s.summary?.patient_questions || '').toLowerCase();
-            const ais = (s.summary?.action_items || '').toLowerCase();
-            return dateStr.includes(q) || pqs.includes(q) || ais.includes(q);
-        });
-        renderList(filtered);
+    document.getElementById('searchInput').addEventListener('input', applyFiltersAndRender);
+
+    // ── Filters: favorites + date range ─────────────────────────────────────────
+    document.getElementById('favFilter').addEventListener('change', function () {
+        favoritesOnly = this.checked;
+        document.getElementById('favFilterChip').classList.toggle('active', favoritesOnly);
+        applyFiltersAndRender();
     });
+    document.getElementById('dateFilter').addEventListener('change', function () {
+        dateMode = this.value;
+        document.getElementById('dateRangeRow').style.display =
+            dateMode === 'custom' ? 'flex' : 'none';
+        applyFiltersAndRender();
+    });
+    document.getElementById('dateStart').addEventListener('change', function () {
+        dateStart = this.value;
+        applyFiltersAndRender();
+    });
+    document.getElementById('dateEnd').addEventListener('change', function () {
+        dateEnd = this.value;
+        applyFiltersAndRender();
+    });
+
+    // ── Bulk-action buttons ──────────────────────────────────────────────────────
+    document.getElementById('mergeBtn').addEventListener('click', mergeSelected);
+    document.getElementById('deleteBtn').addEventListener('click', bulkDelete);
+    document.getElementById('clearSelBtn').addEventListener('click', clearSelection);
 
     // ── Refresh ────────────────────────────────────────────────────────────────
     document.getElementById('refreshBtn').addEventListener('click', () => {
-        activeFilename = null;
-        document.getElementById('detailPlaceholder').style.display = 'flex';
-        document.getElementById('detailPlaceholder').innerHTML = `
-            <span class="detail-placeholder-icon">🗂️</span>
-            <span class="detail-placeholder-title">Select a session to view details</span>
-            <span style="font-size:13px;color:var(--color-text-secondary);">Patient conversations are saved here after each session ends.</span>`;
-        document.getElementById('detailContent').style.display = 'none';
+        resetDetailPanel();
         loadSessions();
     });
 
