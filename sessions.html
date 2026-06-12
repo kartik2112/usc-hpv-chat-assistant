@@ -1635,8 +1635,20 @@
         // Header
         document.getElementById('detailSessionId').textContent = `Session ID: ${s.session_id || '—'}`;
 
-        const msgs = (s.messages || []);
-        const userTurns = msgs.filter(m => m.role === 'user').length;
+        // Conversation is derived exclusively from the events stream — the
+        // messages key is intentionally NOT used here. Each conversational turn
+        // is logged as an event whose text lives in `details`.
+        const USER_EVENT_TYPES = new Set(['User Text Query', 'User Voice Query']);
+        const ASST_EVENT_TYPES = new Set(['Assistant Text Response', 'Assistant Voice Response']);
+        const convoEvents = [...(s.events || [])]
+            .filter(e => USER_EVENT_TYPES.has(e.type) || ASST_EVENT_TYPES.has(e.type))
+            .sort((a, b) => {
+                const tA = a.timestamp || '', tB = b.timestamp || '';
+                if (tA < tB) return -1;
+                if (tA > tB) return  1;
+                return (a.seq || 0) - (b.seq || 0);
+            });
+        const userTurns = convoEvents.filter(e => USER_EVENT_TYPES.has(e.type)).length;
         // Derive end time from the last event timestamp, not the server timeout value
         const evtTimestamps = (s.events || []).map(e => e.timestamp).filter(Boolean);
         const lastEventAt = evtTimestamps.length ? evtTimestamps.reduce((a, b) => a > b ? a : b) : null;
@@ -1648,7 +1660,7 @@
         ].join('');
 
         // Tab counts
-        document.getElementById('tabCountMsgs').textContent = msgs.length;
+        document.getElementById('tabCountMsgs').textContent = convoEvents.length;
         document.getElementById('tabCountEvts').textContent = (s.events||[]).length;
 
         // ── Summary pane ──
@@ -1702,11 +1714,12 @@
 
         // ── Conversation pane ──
         const thread = document.getElementById('conversationThread');
-        if (!msgs.length) {
+        if (!convoEvents.length) {
             thread.innerHTML = `<div style="color:var(--color-text-secondary);font-size:13px;">No messages recorded for this session.</div>`;
         } else {
-            thread.innerHTML = msgs.map(m => {
-                const isUser = m.role === 'user';
+            thread.innerHTML = convoEvents.map(e => {
+                const isUser = USER_EVENT_TYPES.has(e.type);
+                const content = e.details || '';
                 const avatar = isUser
                     ? `<div class="msg-avatar user-avatar">P</div>`
                     : `<div class="msg-avatar asst-avatar">A</div>`;
@@ -1716,7 +1729,7 @@
                         ${avatar}
                         <div class="msg-col">
                             <div class="msg-role-label">${label}</div>
-                            <div class="msg-bubble${isUser ? '' : ' markdown-body'}">${isUser ? escHtml(m.content || '') : renderMd(m.content || '')}</div>
+                            <div class="msg-bubble${isUser ? '' : ' markdown-body'}">${isUser ? escHtml(content) : renderMd(content)}</div>
                         </div>
                     </div>`;
             }).join('');
