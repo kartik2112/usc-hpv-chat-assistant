@@ -1070,7 +1070,7 @@
                     </label>
                     <select class="toolbar-select" id="dateFilter" title="Filter by date">
                         <option value="all">All dates</option>
-                        <option value="today">Today</option>
+                        <option value="today" selected>Today</option>
                         <option value="custom">Date range…</option>
                     </select>
                 </div>
@@ -1273,7 +1273,7 @@
     // Bulk-selection + filter state
     const selectedFilenames = new Set();   // filenames ticked via card checkboxes
     let favoritesOnly = false;             // ★ Favorites filter toggle
-    let dateMode = 'all';                  // 'all' | 'today' | 'custom'
+    let dateMode = 'today';                // 'all' | 'today' | 'custom' — defaults to Today
     let dateStart = '';                    // 'YYYY-MM-DD' (custom mode)
     let dateEnd = '';                      // 'YYYY-MM-DD' (custom mode)
 
