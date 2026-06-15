@@ -1385,6 +1385,7 @@
             updateSelectionUI();
             updateStats();
             applyFiltersAndRender();
+            openSessionFromUrl(true);   // deep-link: open ?sessionId if present
         } catch (e) {
             document.getElementById('sessionList').innerHTML =
                 `<div class="error-banner">⚠️ Could not load sessions: ${escHtml(e.message)}</div>`;
@@ -1601,6 +1602,7 @@
 
     function resetDetailPanel() {
         activeFilename = null;
+        setUrlSessionId(null, true);     // drop ?sessionId from the URL
         document.getElementById('detailPlaceholder').style.display = 'flex';
         document.getElementById('detailPlaceholder').innerHTML = `
             <span class="detail-placeholder-icon">🗂️</span>
@@ -1609,10 +1611,49 @@
         document.getElementById('detailContent').style.display = 'none';
     }
 
+    // ── URL <-> session syncing ────────────────────────────────────────────────
+    // Reflect the open conversation in the URL as ?sessionId=XXXX (uses the
+    // human-meaningful session_id so the link is shareable). Falls back to the
+    // filename if a session_id isn't available.
+    function setUrlSessionId(sessionId, replace) {
+        const url = new URL(window.location.href);
+        if (sessionId) url.searchParams.set('sessionId', sessionId);
+        else url.searchParams.delete('sessionId');
+        history[replace ? 'replaceState' : 'pushState'](
+            { sessionId: sessionId || null }, '', url);
+    }
+
+    // Open the session named in the URL's ?sessionId param, if any. Relaxes the
+    // active filters when needed so the deep-linked card is shown + highlighted.
+    function openSessionFromUrl(replaceUrl) {
+        const sid = new URLSearchParams(window.location.search).get('sessionId');
+        if (!sid) return;
+        const sess = allSessions.find(s => s.session_id === sid)
+                  || allSessions.find(s => s.filename === sid);
+        if (!sess) return;
+        // If current filters hide the card, relax them so it appears + highlights.
+        const cardPresent = document.querySelector(
+            `.session-card[data-filename="${CSS.escape(sess.filename)}"]`);
+        if (!cardPresent) {
+            favoritesOnly = false;
+            document.getElementById('favFilter').checked = false;
+            document.getElementById('favFilterChip').classList.remove('active');
+            dateMode = 'all';
+            document.getElementById('dateFilter').value = 'all';
+            document.getElementById('dateRangeRow').style.display = 'none';
+            applyFiltersAndRender();
+        }
+        selectSession(sess.filename, { replaceUrl: replaceUrl !== false });
+    }
+
     // ── Load single session detail ─────────────────────────────────────────────
-    async function selectSession(filename) {
+    async function selectSession(filename, opts = {}) {
         if (activeFilename === filename) return;
         activeFilename = filename;
+
+        // Keep the URL shareable: reflect the opened conversation's session_id.
+        const sess = allSessions.find(s => s.filename === filename);
+        setUrlSessionId(sess?.session_id || filename, !!opts.replaceUrl);
 
         // Highlight active card
         document.querySelectorAll('.session-card').forEach(c => {
@@ -1822,6 +1863,13 @@
     document.getElementById('favFilter').addEventListener('change', function () {
         favoritesOnly = this.checked;
         document.getElementById('favFilterChip').classList.toggle('active', favoritesOnly);
+        // Enabling Favorites defaults the date filter to "All dates" so favorited
+        // sessions from any day are shown (otherwise Today would hide most).
+        if (favoritesOnly) {
+            dateMode = 'all';
+            document.getElementById('dateFilter').value = 'all';
+            document.getElementById('dateRangeRow').style.display = 'none';
+        }
         applyFiltersAndRender();
     });
     document.getElementById('dateFilter').addEventListener('change', function () {
@@ -1871,6 +1919,16 @@
         else collapsePanel();
     });
     panelExpandBtn.addEventListener('click', expandPanel);
+
+    // ── Browser back/forward: keep the open conversation in sync with the URL ──
+    window.addEventListener('popstate', () => {
+        const sid = new URLSearchParams(window.location.search).get('sessionId');
+        if (!sid) { resetDetailPanel(); return; }
+        // Avoid reopening if it's already the active session.
+        const sess = allSessions.find(s => s.session_id === sid)
+                  || allSessions.find(s => s.filename === sid);
+        if (sess && sess.filename !== activeFilename) openSessionFromUrl(true);
+    });
 
     // ── Boot ───────────────────────────────────────────────────────────────────
     // Show the password gate immediately. If a valid token is already in
