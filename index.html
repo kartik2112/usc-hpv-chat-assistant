@@ -1687,18 +1687,10 @@ body {
         // OpenAI Configuration with NEW SYSTEM PROMPT
         const OPENAI_CONFIG = {
             // endpoint: 'https://api.openai.com/v1/chat/completions',
-            endpoint: BACKEND_DOMAIN + '/api/chat',
-            systemMessage: `You are a helpful medical assistant specializing ONLY in HPV-related information. It is extremely important to follow the following instructions:
-            * Provide accurate and concise answers based on the latest medical guidelines and research.
-            * Please answer the questions as you would explain to patients not in the medical domain and who may not be as well-educated. 
-            * Avoid using complex medical jargon unless absolutely necessary, and always aim to educate in a clear and friendly manner. Don't make the answers sound scary or verbose. 
-            * Attempt to stick to an answer that's very short - TRY TO KEEP IT WITHIN **75 WORDS**. BREVITY AND TERSENESS IS SUPER IMPORTANT to prevent overwhelming the patients. 
-            * If you don't know the answer, simply say you don't know. 
-            * If the question is not related to HPV, politely decline to answer. 
-            * Refrain from asking additional questions unless any clarification is needed. 
-            * Additionally, ASSUME THE USER'S AGE IS ABOVE 26 while generating a response. Try to avoid mentioning a lot of details for age groups below 26. 
-            
-            Keep answers very brief, concise, and to the point.`
+            endpoint: BACKEND_DOMAIN + '/api/chat'
+            // NOTE: the system prompt is built server-side in rag_pipeline.py.
+            // The backend discards any 'system' message sent by the frontend,
+            // so there is no systemMessage here. Edit the prompt in rag_pipeline.py.
         };
 
         // ========== PRE-CHAT QUESTIONNAIRE (URL query params) ==========
@@ -2822,10 +2814,10 @@ body {
             let fullText = '';
 
             try {
-                // Build messages array with conversation history
-                const messagesArray = [
-                    { role: 'system', content: OPENAI_CONFIG.systemMessage }
-                ];
+                // Build messages array with conversation history.
+                // No system message is sent — the backend builds the system
+                // prompt server-side (rag_pipeline.py) and ignores any sent here.
+                const messagesArray = [];
                 chatHistory.forEach(msg => {
                     if (msg.role !== 'assistant' || !msg.followups) {
                         messagesArray.push({ role: msg.role, content: msg.content });
