@@ -1739,6 +1739,41 @@
                 </div>
             </div>` : '';
 
+        // End-of-session feedback (rating / vaccination intent / free-text comments).
+        // Prefer the backend's structured `feedback` object; fall back to scanning the
+        // event stream so this still works for session files saved before that field
+        // existed. Last occurrence of each event type wins, so a patient who changes
+        // a selection is shown with their final answer.
+        const lastEventDetails = (type) => {
+            const matches = (s.events || []).filter(e => e.type === type);
+            return matches.length ? (matches[matches.length - 1].details || '').trim() : '';
+        };
+        const fb = s.feedback || {};
+        const fbRows = [
+            ['Experience rating',         fb.rating             || lastEventDetails('Rating Selected')],
+            ['Intent to get HPV vaccine', fb.vaccination_intent || lastEventDetails('Vaccination Intent Selected')],
+            ['Comments',                  fb.comments           || lastEventDetails('Text Feedback Submitted')],
+        ].filter(([, v]) => v);
+        const feedbackCard = fbRows.length ? `
+            <div class="summary-card" style="grid-column:1/-1;">
+                <div class="summary-card-header">
+                    <div class="summary-card-icon icon-bg-gold">💛</div>
+                    <div>
+                        <div class="summary-card-title">End-of-Session Feedback</div>
+                        <div style="font-size:12px;color:var(--color-text-secondary);">Collected in the feedback modal when the conversation ended</div>
+                    </div>
+                </div>
+                <div class="summary-card-body">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        ${fbRows.map(([label, val]) => `
+                            <tr style="border-bottom:1px solid var(--color-card-border);">
+                                <td style="padding:7px 12px 7px 0;color:var(--color-text);vertical-align:top;">${escHtml(label)}</td>
+                                <td style="padding:7px 0;font-weight:600;text-align:right;vertical-align:top;">${escHtml(val)}</td>
+                            </tr>`).join('')}
+                    </table>
+                </div>
+            </div>` : '';
+
         document.getElementById('summaryGrid').innerHTML = `
             <div class="summary-card">
                 <div class="summary-card-header">
@@ -1760,7 +1795,8 @@
                 </div>
                 <div class="summary-card-body">${escHtml(ais)}</div>
             </div>
-            ${surveyCard}`;
+            ${surveyCard}
+            ${feedbackCard}`;
 
         // ── Conversation pane ──
         const thread = document.getElementById('conversationThread');

@@ -951,6 +951,35 @@ body {
   border-color: var(--color-primary);
 }
 
+/* Vaccination-intent options: wrap on narrow screens (5 longer labels) */
+.intent-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+
+.intent-btn {
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.intent-btn:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.intent-btn.selected {
+  background-color: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border-color: var(--color-primary);
+}
+
 /* ===== Feature Tour (onboarding coachmarks) ===== */
 /* Blur everything in the app while the tour is active */
 .tour-active-blur {
@@ -1266,6 +1295,17 @@ body {
             </div>
             
             <div class="feedback-group">
+            <label class="feedback-label" id="intentLabel">How likely are you to get the HPV vaccine? (Optional)</label>
+            <div class="intent-group">
+                <button class="intent-btn" data-intent="1">Definitely not</button>
+                <button class="intent-btn" data-intent="2">Probably not</button>
+                <button class="intent-btn" data-intent="3">Not sure</button>
+                <button class="intent-btn" data-intent="4">Probably yes</button>
+                <button class="intent-btn" data-intent="5">Definitely yes</button>
+            </div>
+            </div>
+
+            <div class="feedback-group">
             <label class="feedback-label" for="feedbackText" id="feedbackTextLabel">
                 Any comments or suggestions? (Optional)
             </label>
@@ -1514,6 +1554,23 @@ body {
                     '😄 Great',
                     '🤩 Excellent'
                 ],
+                intentLabel: 'How likely are you to get the HPV vaccine? (Optional)',
+                intentButtons: [
+                    'Definitely not',
+                    'Probably not',
+                    'Not sure',
+                    'Probably yes',
+                    'Definitely yes'
+                ],
+                // English labels logged to the session regardless of UI language,
+                // so analytics don't have to normalise across locales.
+                intentLogLabels: [
+                    'Definitely not',
+                    'Probably not',
+                    'Not sure',
+                    'Probably yes',
+                    'Definitely yes'
+                ],
                 feedbackTextLabel: 'Any comments or suggestions? (Optional)',
                 feedbackPlaceholder: 'Tell us what you think...',
                 skipBtn: 'Skip',
@@ -1621,6 +1678,14 @@ body {
                     '🙂 Bueno',
                     '😄 Muy bueno',
                     '🤩 Excelente'
+                ],
+                intentLabel: '¿Qué probabilidad hay de que se vacune contra el VPH? (Opcional)',
+                intentButtons: [
+                    'Definitivamente no',
+                    'Probablemente no',
+                    'No estoy seguro/a',
+                    'Probablemente sí',
+                    'Definitivamente sí'
                 ],
                 feedbackTextLabel: '¿Algún comentario o sugerencia? (Opcional)',
                 feedbackPlaceholder: 'Díganos qué piensa...',
@@ -1775,6 +1840,7 @@ body {
         const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
         const feedbackText = document.getElementById('feedbackText');
         const ratingBtns = document.querySelectorAll('.rating-btn');
+        const intentBtns = document.querySelectorAll('.intent-btn');
         // Modal text elements for translation
         const endModalTitle = document.getElementById('endModalTitle');
         const endModalBody = document.getElementById('endModalBody');
@@ -1783,6 +1849,7 @@ body {
         const feedbackModalTitle = document.getElementById('feedbackModalTitle');
         const feedbackModalIntro = document.getElementById('feedbackModalIntro');
         const ratingLabel = document.getElementById('ratingLabel');
+        const intentLabel = document.getElementById('intentLabel');
         const feedbackTextLabel = document.getElementById('feedbackTextLabel');
         const feedbackTextArea = document.getElementById('feedbackText');
         const skipFeedbackBtnText = document.getElementById('skipFeedbackBtn');
@@ -2200,6 +2267,17 @@ body {
                     btn.textContent = ratingTexts[index];
                 }
             });
+
+            // Vaccination intent question
+            intentLabel.textContent = t.intentLabel;
+            const intentTexts = t.intentButtons || [
+                'Definitely not', 'Probably not', 'Not sure', 'Probably yes', 'Definitely yes'
+            ];
+            document.querySelectorAll('.intent-btn').forEach((btn, index) => {
+                if (intentTexts[index]) {
+                    btn.textContent = intentTexts[index];
+                }
+            });
         }
 
 
@@ -2593,13 +2671,16 @@ body {
 
         // Feedback Modal
         let selectedRating = null;
+        let selectedIntent = null;   // '1'..'5' — vaccination intent (optional)
 
         function showFeedbackModal() {
             // Reset feedback form
             selectedRating = null;
+            selectedIntent = null;
             feedbackText.value = '';
             ratingBtns.forEach(btn => btn.classList.remove('selected'));
-            
+            intentBtns.forEach(btn => btn.classList.remove('selected'));
+
             showModal(feedbackModal);
         }
 
@@ -3186,6 +3267,23 @@ body {
                 btn.classList.add('selected');
                 selectedRating = btn.getAttribute('data-rating');
                 addEvent('Rating Selected', "Rating: " + selectedRating + "/5 (5 is highest)");
+            });
+        });
+
+        // Vaccination intent button listeners.
+        // Logged with the canonical English label so session analytics don't
+        // have to normalise across UI languages.
+        intentBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                intentBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedIntent = btn.getAttribute('data-intent');
+                const label = (translations.en.intentLogLabels || [])[Number(selectedIntent) - 1]
+                              || btn.textContent.trim();
+                addEvent(
+                    'Vaccination Intent Selected',
+                    `Intent to get HPV vaccine: ${label} (${selectedIntent}/5, 5 = definitely yes)`
+                );
             });
         });
 
