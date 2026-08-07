@@ -806,6 +806,19 @@ body {
   font-size: 20px;
 }
 
+/* While recording the mic becomes a stop button. Providers did not realise the
+   pulsing ring alone meant "press again to stop", so the glyph itself changes.
+   Drawn in CSS rather than the ⏹ emoji: no font dependency, and currentColor
+   picks up the white that .icon-btn.active already sets on the red button. */
+.icon-btn.listening .mic-icon::before {
+  content: '';
+  display: block;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
 .send-icon::before {
   content: '➤';
   font-size: 18px;
@@ -1801,6 +1814,8 @@ body {
                 emptyTitle: 'Welcome! I can answer any questions you have about HPV!',
                 emptySubtitle: 'Select a question below or type your own',
                 listening: 'Listening...',
+                voiceInput: 'Voice input',
+                stopRecording: 'Stop recording',
                 noMatch: 'I couldn\'t find a predefined answer. Would you like me to use AI to answer? (Set your OpenAI API key in settings)',
                 settingsTitle: 'API Settings',
                 // apiKeyLabel: 'OpenAI API Key',
@@ -1949,6 +1964,8 @@ body {
                 emptyTitle: '¡Bienvenido! ¡Puedo responder cualquier pregunta que tengas sobre el VPH!',
                 emptySubtitle: 'Seleccione una pregunta a continuación o escriba la suya propia',
                 listening: 'Escuchando...',
+                voiceInput: 'Entrada de voz',
+                stopRecording: 'Detener grabación',
                 noMatch: 'No pude encontrar una respuesta predefinida. ¿Quieres que use IA para responder? (Establece tu clave API de OpenAI en configuración)',
                 settingsTitle: 'Configuración de API',
                 // apiKeyLabel: 'Clave API de OpenAI',
@@ -2589,6 +2606,9 @@ body {
         function setMicListening(on) {
             micBtn.classList.toggle('active', on);
             micBtn.classList.toggle('listening', on);
+            const t = translations[currentLang];
+            micBtn.title = on ? t.stopRecording : t.voiceInput;
+            micBtn.setAttribute('aria-label', micBtn.title);
         }
 
         // Initialize Speech Recognition
@@ -2687,6 +2707,9 @@ body {
 
             if (recognition) {
                 recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+                // Re-apply the mic tooltip in the new language, preserving
+                // whichever state the button is currently in.
+                setMicListening(micBtn.classList.contains('listening'));
             }
 
             // If the feature tour is open, refresh its text in the new language
