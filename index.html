@@ -1020,6 +1020,14 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
+/* The patient-facing handoff step. Sits where the summary will appear, so the
+   modal does not jump in size when the provider reveals it. */
+.summary-handoff {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-16) 0 var(--space-8) 0;
+}
+
 .summary-scroll {
   flex: 1 1 auto;
   min-height: 0;                /* required, or this flex child refuses to
@@ -1534,14 +1542,25 @@ body {
         <div id="summaryModal" class="modal-overlay hidden">
         <div class="modal-content modal-content--wide" role="dialog" aria-modal="true"
              aria-labelledby="summaryModalTitle">
-            <h2 class="modal-title" id="summaryModalTitle">Your visit summary</h2>
+            <!-- Title and intro are swapped by applySummaryModalText() depending on
+                 which of the two states below is showing. -->
+            <h2 class="modal-title" id="summaryModalTitle">Please hand this device to your provider</h2>
             <p class="modal-body modal-body--tight" id="summaryModalIntro">
-            Here is a summary of your conversation to share with your provider.
+            Your provider can review a summary of your conversation on this screen.
             </p>
 
-            <!-- Scrolling middle section: the pinned title above and the pinned
-                 action button below stay visible no matter how long this gets. -->
-            <div class="summary-scroll" id="summaryScroll">
+            <!-- State 1 (patient): the summary is already loaded below, just not
+                 shown. It is written for the provider, so the patient is asked to
+                 hand the device over rather than read clinical notes about
+                 themselves. This is a handoff prompt, not an access control. -->
+            <div class="summary-handoff" id="summaryHandoff">
+                <button type="button" class="btn btn-primary" id="revealSummaryBtn">Review summary</button>
+            </div>
+
+            <!-- State 2 (provider): revealed by the button above. Scrolling middle
+                 section — the pinned title and action button stay visible no matter
+                 how long this gets. -->
+            <div class="summary-scroll hidden" id="summaryScroll">
 
                 <section class="summary-card">
                     <h3 class="summary-card-title" id="summaryCardTitle">Conversation Summary</h3>
@@ -1833,20 +1852,27 @@ body {
                 submitFeedbackBtn: 'Submit Feedback',
                 thankYouMessage: 'Thank you for your feedback!',
                 // ── Session summary + transcript popup ────────────────────────
+                // Shown to the patient, in their language, before the summary is revealed.
+                summaryHandoffTitle: 'Please hand this device to your provider',
+                summaryHandoffBody: 'Your provider can review a summary of your conversation on this screen.',
+                revealSummaryBtn: 'Review summary',
+                // Everything below is read by the PROVIDER, so it addresses them and
+                // refers to the patient in the third person. they/them is used because
+                // the app never collects the patient's gender.
                 summaryCardTitle: 'Conversation Summary',
-                summaryLoadingText: 'Preparing your summary…',
-                summaryQuestionsTitle: 'Questions you asked',
-                summaryActionsTitle: 'Things to discuss with your provider',
-                summaryUnavailable: "We couldn't prepare a summary this time. Your full conversation is still below.",
+                summaryLoadingText: 'Preparing the summary…',
+                summaryQuestionsTitle: 'Questions they asked',
+                summaryActionsTitle: 'Suggested follow-up',
+                summaryUnavailable: "We couldn't prepare a summary this time. Their full conversation is still below.",
                 transcriptTitle: 'Full conversation',
                 transcriptShow: 'Show full conversation',
                 transcriptHide: 'Hide full conversation',
                 transcriptCountLabel: '{n} messages',
                 transcriptEmpty: 'No messages were recorded in this conversation.',
-                transcriptRoleUser: 'You',
+                transcriptRoleUser: 'Patient',
                 transcriptRoleAssistant: 'Assistant',
-                summaryModalTitle: 'Your visit summary',
-                summaryModalIntro: 'Here is a summary of your conversation to share with your provider.',
+                summaryModalTitle: 'Patient visit summary',
+                summaryModalIntro: 'What they asked during this conversation, and suggested follow-up.',
                 closeSummaryBtn: 'Done',
                 noConversationToExport: 'No conversation to export yet.',
                 phiWarning: 'Reminder: It looks like you may be entering personal information ({types}). For your privacy, please avoid sharing personal details.',
@@ -1965,20 +1991,26 @@ body {
                 submitFeedbackBtn: 'Enviar comentarios',
                 thankYouMessage: '¡Gracias por tus comentarios!',
                 // ── Resumen de la sesión + transcripción ──────────────────────
+                // Para el paciente, antes de mostrar el resumen.
+                summaryHandoffTitle: 'Por favor, entregue este dispositivo a su proveedor de salud',
+                summaryHandoffBody: 'Su proveedor puede revisar en esta pantalla un resumen de su conversación.',
+                revealSummaryBtn: 'Revisar el resumen',
+                // Lo siguiente lo lee el PROVEEDOR. Se usa "el paciente" en lugar de
+                // un pronombre porque el español marca género y la app no lo conoce.
                 summaryCardTitle: 'Resumen de la conversación',
-                summaryLoadingText: 'Preparando su resumen…',
-                summaryQuestionsTitle: 'Preguntas que usted hizo',
-                summaryActionsTitle: 'Temas para hablar con su proveedor',
-                summaryUnavailable: 'No pudimos preparar un resumen esta vez. Su conversación completa aparece a continuación.',
+                summaryLoadingText: 'Preparando el resumen…',
+                summaryQuestionsTitle: 'Preguntas del paciente',
+                summaryActionsTitle: 'Seguimiento sugerido',
+                summaryUnavailable: 'No pudimos preparar un resumen esta vez. La conversación completa del paciente aparece a continuación.',
                 transcriptTitle: 'Conversación completa',
                 transcriptShow: 'Mostrar la conversación completa',
                 transcriptHide: 'Ocultar la conversación completa',
                 transcriptCountLabel: '{n} mensajes',
                 transcriptEmpty: 'No se registraron mensajes en esta conversación.',
-                transcriptRoleUser: 'Usted',
+                transcriptRoleUser: 'Paciente',
                 transcriptRoleAssistant: 'Asistente',
-                summaryModalTitle: 'Resumen de su visita',
-                summaryModalIntro: 'Aquí tiene un resumen de su conversación para compartir con su proveedor de salud.',
+                summaryModalTitle: 'Resumen de la visita del paciente',
+                summaryModalIntro: 'Lo que el paciente preguntó durante esta conversación y el seguimiento sugerido.',
                 closeSummaryBtn: 'Listo',
                 noConversationToExport: 'Aún no hay conversación para exportar.',
                 phiWarning: 'Recordatorio: Parece que está ingresando información personal ({types}). Para su privacidad, evite compartir datos personales.',
@@ -2147,6 +2179,8 @@ body {
         const summaryModalTitle     = document.getElementById('summaryModalTitle');
         const summaryModalIntro     = document.getElementById('summaryModalIntro');
         const closeSummaryBtn       = document.getElementById('closeSummaryBtn');
+        const summaryHandoff        = document.getElementById('summaryHandoff');
+        const revealSummaryBtn      = document.getElementById('revealSummaryBtn');
         const summaryCardTitle      = document.getElementById('summaryCardTitle');
         const summaryLoading        = document.getElementById('summaryLoading');
         const summaryLoadingText    = document.getElementById('summaryLoadingText');
@@ -2706,9 +2740,8 @@ body {
             summaryQuestionsTitle.textContent = t.summaryQuestionsTitle;
             summaryActionsTitle.textContent   = t.summaryActionsTitle;
             summaryErrorEl.textContent        = t.summaryUnavailable;
-            summaryModalTitle.textContent     = t.summaryModalTitle;
-            summaryModalIntro.textContent     = t.summaryModalIntro;
             closeSummaryBtn.textContent       = t.closeSummaryBtn;
+            applySummaryModalText();   // title/intro depend on which state is showing
             updateTranscriptToggleLabel();
             // Defensive: the language toggle sits behind the modal overlay, so this
             // should not happen — but if it ever does, re-label You/Assistant.
@@ -3057,16 +3090,11 @@ body {
             if (area) area.classList.add('hidden');
         }
 
-        // `preset` marks a turn that came from a preloaded question button rather
-        // than from the patient typing or the LLM answering. The backend uses it to
-        // exempt this app-authored text from PHI stripping, so a conversation made
-        // entirely of preloaded questions still reaches the summary generator.
-        function add_message_to_chat_history(role, content, preset = false) {
+        function add_message_to_chat_history(role, content) {
             if (chatHistory.length >= 1 && (chatHistory[chatHistory.length -1].role === role) && (chatHistory[chatHistory.length -1].content === content)) {
                 return; // Avoid duplicate consecutive entries
             }
-            chatHistory.push(preset ? { role: role, content: content, preset: true }
-                                    : { role: role, content: content });
+            chatHistory.push({ role: role, content: content });
             addEvent(role == 'user' ? (wasVoiceInput ? 'User Voice Query' : 'User Text Query') : (wasVoiceInput ? 'Assistant Voice Response': 'Assistant Text Response'), content);
         }
 
@@ -3100,9 +3128,9 @@ body {
             addEvent('Button Click', 'End Conversation Confirmed');
             hideModal(endConversationModal);
 
-            // Kick the summary request off immediately so the LLM latency overlaps
-            // the 500 ms modal transition and the time the patient spends reading,
-            // instead of being waited on.
+            // Kick the summary request off immediately so it generates while the
+            // patient answers the feedback questions, instead of being waited on
+            // when the summary modal opens.
             requestSessionSummary();
 
             setTimeout(() => {
@@ -3184,13 +3212,23 @@ body {
             return Object.keys(payload).length ? payload : null;
         }
 
-        // ── Step 2: summary + transcript ──────────────────────────────────────────
+        // ── Step 2: hand off to the provider, then show the summary ───────────────
+        // The modal opens on the handoff prompt. The summary is fetched and rendered
+        // underneath straight away — it is only hidden — so revealing it is instant.
+        let summaryRevealed = false;
+
         function showSummaryModal() {
             sessionSummary = null;
             setSummaryState('loading');
             renderTranscript();
             collapseTranscript();
             if (summaryScroll) summaryScroll.scrollTop = 0;
+
+            // Always open on the patient-facing handoff prompt.
+            summaryRevealed = false;
+            summaryHandoff.classList.remove('hidden');
+            summaryScroll.classList.add('hidden');
+            applySummaryModalText();
 
             summaryModalOpen = true;
             // The floating language toggle sits at a higher z-index than the modal
@@ -3214,6 +3252,27 @@ body {
             });
 
             addEvent('Modal Shown', 'Session Summary Modal');
+        }
+
+        // The title and intro address whoever is currently reading: the patient
+        // while the handoff prompt is up, the provider once the summary is shown.
+        function applySummaryModalText() {
+            const t = translations[currentLang];
+            summaryModalTitle.textContent = summaryRevealed ? t.summaryModalTitle : t.summaryHandoffTitle;
+            summaryModalIntro.textContent = summaryRevealed ? t.summaryModalIntro : t.summaryHandoffBody;
+            revealSummaryBtn.textContent  = t.revealSummaryBtn;
+        }
+
+        // Reveals the provider view. A deliberate handoff step, not access control —
+        // the content is already on the page, so this is a prompt to pass the device
+        // over rather than a barrier.
+        function revealSummaryForProvider() {
+            summaryRevealed = true;
+            summaryHandoff.classList.add('hidden');
+            summaryScroll.classList.remove('hidden');
+            summaryScroll.scrollTop = 0;
+            applySummaryModalText();
+            addEvent('Button Click', 'Summary Revealed to Provider');
         }
 
         // state: 'loading' | 'ready' | 'error'
@@ -3260,14 +3319,9 @@ body {
             const answer = typeof suggestion.defaultAnswer === 'object' ? suggestion.defaultAnswer[currentLang] : suggestion.defaultAnswer;
             const followups = typeof suggestion.followups === 'object' ? (suggestion.followups[currentLang] || []) : (suggestion.followups || []);
 
-            // Both turns are app-authored preloaded content, so they are flagged
-            // `preset` and exempted from backend PHI stripping — otherwise the
-            // clinical wording in the canned answers ("Human Papillomavirus",
-            // "United States") trips the PERSON recogniser and the whole pair is
-            // dropped before the summary is generated.
-            addUserMessage(question, true);
+            addUserMessage(question);
 
-            add_message_to_chat_history('assistant', answer, true);
+            add_message_to_chat_history('assistant', answer);
             syncMessagesToSession(); // Push updated messages to server session
 
             // Pass empty followups — they are shown in the suggestions area, not the bubble
@@ -3306,8 +3360,8 @@ body {
         }
 
         // Add User Message
-        function addUserMessage(text, preset = false) {
-            add_message_to_chat_history('user', text, preset);
+        function addUserMessage(text) {
+            add_message_to_chat_history('user', text);
 
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message user';
@@ -3881,6 +3935,7 @@ body {
 
         // Summary Modal Listeners (step 2)
         closeSummaryBtn.addEventListener('click', closeSummaryModal);
+        revealSummaryBtn.addEventListener('click', revealSummaryForProvider);
         transcriptToggle.addEventListener('click', toggleTranscript);
 
         // Rating button listeners
