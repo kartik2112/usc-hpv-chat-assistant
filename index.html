@@ -536,19 +536,32 @@ body {
   border-color: var(--color-error);
 }
 
+/* Recording. An expanding ring reads clearly at a glance and, unlike the old
+   opacity fade, does not make the button look disabled while it is active. */
 .icon-btn.listening {
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: mic-pulse 1.4s ease-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
+/* Only the ring animates — the button itself must stay a stationary target,
+   since the user has to press it again to stop recording. */
+@keyframes mic-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--color-red-500-rgb), 0.6); }
+  70%  { box-shadow: 0 0 0 12px rgba(var(--color-red-500-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--color-red-500-rgb), 0); }
+}
+
+/* Still obvious without motion: a solid ring instead of an expanding one. */
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn.listening {
+    animation: none;
+    box-shadow: 0 0 0 4px rgba(var(--color-red-500-rgb), 0.35);
   }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
+}
+
+/* Tactile press feedback on the mic itself, independent of whether the speech
+   API ever fires onstart. */
+#micBtn:active {
+  transform: scale(0.92);
 }
 
 .send-btn {
@@ -793,6 +806,19 @@ body {
   font-size: 20px;
 }
 
+/* While recording the mic becomes a stop button. Providers did not realise the
+   pulsing ring alone meant "press again to stop", so the glyph itself changes.
+   Drawn in CSS rather than the ⏹ emoji: no font dependency, and currentColor
+   picks up the white that .icon-btn.active already sets on the red button. */
+.icon-btn.listening .mic-icon::before {
+  content: '';
+  display: block;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
 .send-icon::before {
   content: '➤';
   font-size: 18px;
@@ -978,6 +1004,209 @@ body {
   background-color: var(--color-primary);
   color: var(--color-btn-primary-text);
   border-color: var(--color-primary);
+}
+
+/* ===== Combined session-summary + transcript + feedback modal =====
+   A flex column: pinned title/intro, scrolling middle, pinned actions.
+   Everything is scoped behind the --wide modifier so #endConversationModal
+   keeps its original 500px sizing.
+   Sizes use the font-size and space custom properties throughout, because the
+   "Enlarge Text" toggle rewrites those tokens at runtime. */
+.modal-content--wide {
+  max-width: 680px;
+  max-height: 88vh;
+  max-height: 88dvh;            /* iOS: excludes the collapsing URL bar */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;             /* border-radius clips the scrolling child */
+}
+
+.modal-content--wide .modal-title,
+.modal-content--wide .modal-body { flex: 0 0 auto; }
+
+.modal-body--tight { margin-bottom: var(--space-16); }
+
+.modal-content--wide .modal-actions {
+  flex: 0 0 auto;
+  margin-top: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--color-border);
+}
+
+/* The patient-facing handoff step. Sits where the summary will appear, so the
+   modal does not jump in size when the provider reveals it. */
+.summary-handoff {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-16) 0 var(--space-8) 0;
+}
+
+.summary-scroll {
+  flex: 1 1 auto;
+  min-height: 0;                /* required, or this flex child refuses to
+                                   shrink and the modal grows past the viewport */
+  overflow-y: auto;
+  overscroll-behavior: contain; /* don't scroll the page behind the modal */
+  -webkit-overflow-scrolling: touch;
+  padding-right: var(--space-8);
+}
+
+/* --- Summary card --- */
+.summary-card {
+  border: 1px solid var(--color-card-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-base);
+  background-color: var(--color-background);
+  padding: var(--space-16);
+  margin-bottom: var(--space-16);
+}
+
+.summary-card-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-12) 0;
+}
+
+.summary-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: var(--space-12) 0 var(--space-4) 0;
+}
+
+.summary-section-title:first-child { margin-top: 0; }
+
+.summary-text {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  white-space: pre-wrap;        /* the summary arrives as "• a\A • b" plain text */
+  overflow-wrap: anywhere;
+}
+
+.summary-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.summary-spinner {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: summary-spin 0.8s linear infinite;
+}
+
+@keyframes summary-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .summary-spinner { animation: none; }
+}
+
+.summary-error {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-error);
+}
+
+/* --- Collapsible transcript --- */
+.transcript-card {
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+  margin-bottom: var(--space-16);
+}
+
+.transcript-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-surface);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.transcript-toggle:hover { background-color: var(--color-secondary-hover); }
+.transcript-toggle:focus-visible { outline: var(--focus-outline); outline-offset: -2px; }
+
+.transcript-toggle-caret {
+  display: inline-block;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.transcript-toggle[aria-expanded="true"] .transcript-toggle-caret {
+  transform: rotate(90deg);
+}
+
+.transcript-count {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-secondary);
+}
+
+.transcript-body {
+  max-height: 40vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-background);
+  border-top: 1px solid var(--color-card-border);
+}
+
+.transcript-turn { margin-bottom: var(--space-12); }
+.transcript-turn:last-child { margin-bottom: 0; }
+
+.transcript-role {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+}
+
+.transcript-turn--user .transcript-role { color: var(--color-primary); }
+.transcript-turn--assistant .transcript-role { color: var(--color-text-secondary); }
+
+.transcript-text {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .modal-content--wide {
+    width: 96%;
+    max-height: 92vh;
+    max-height: 92dvh;
+    padding: var(--space-16);
+  }
+  /* Stack in DOM order (Skip, then Submit) so the primary action ends up
+     bottom-most, where a thumb reaches most easily on a phone. */
+  .modal-content--wide .modal-actions { flex-direction: column; }
+  .modal-content--wide .modal-actions .btn { width: 100%; }
+  .transcript-body { max-height: 32vh; }
+  /* Five rating buttons overflow a phone-width row — wrap them the way
+     .intent-group already does. */
+  .rating-group { flex-wrap: wrap; }
 }
 
 /* ===== Feature Tour (onboarding coachmarks) ===== */
@@ -1275,14 +1504,14 @@ body {
         </div>
         </div>
 
-        <!-- Feedback Modal -->
+        <!-- Feedback Modal — step 1 of the end-of-conversation flow -->
         <div id="feedbackModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 class="modal-title" id="feedbackModalTitle">Thank you for using HPV Health Assistant!</h2>
             <p class="modal-body" id="feedbackModalIntro">
             We'd love to hear your feedback to improve this tool.
             </p>
-            
+
             <div class="feedback-group">
             <label class="feedback-label" id="ratingLabel">How would you rate your experience?</label>
             <div class="rating-group">
@@ -1293,7 +1522,7 @@ body {
                 <button class="rating-btn" data-rating="5">🤩 Excellent</button>
             </div>
             </div>
-            
+
             <div class="feedback-group">
             <label class="feedback-label" id="intentLabel">How likely are you to get the HPV vaccine? (Optional)</label>
             <div class="intent-group">
@@ -1309,16 +1538,75 @@ body {
             <label class="feedback-label" for="feedbackText" id="feedbackTextLabel">
                 Any comments or suggestions? (Optional)
             </label>
-            <textarea 
-                id="feedbackText" 
-                class="feedback-textarea" 
-                placeholder="Tell us what you think...">
-            </textarea>
+            <!-- No whitespace between the tags: a textarea's content is its value,
+                 so a newline here would make feedbackText.value non-empty before
+                 the patient types anything. -->
+            <textarea id="feedbackText" class="feedback-textarea" placeholder="Tell us what you think..."></textarea>
             </div>
-            
+
             <div class="modal-actions">
             <button class="btn" id="skipFeedbackBtn">Skip</button>
             <button class="btn btn-primary" id="submitFeedbackBtn">Submit Feedback</button>
+            </div>
+        </div>
+        </div>
+
+        <!-- Session Summary + Transcript Modal — step 2, shown after feedback -->
+        <div id="summaryModal" class="modal-overlay hidden">
+        <div class="modal-content modal-content--wide" role="dialog" aria-modal="true"
+             aria-labelledby="summaryModalTitle">
+            <!-- Title and intro are swapped by applySummaryModalText() depending on
+                 which of the two states below is showing. -->
+            <h2 class="modal-title" id="summaryModalTitle">Please hand this device to your provider</h2>
+            <p class="modal-body modal-body--tight" id="summaryModalIntro">
+            Your provider can review a summary of your conversation on this screen.
+            </p>
+
+            <!-- State 1 (patient): the summary is already loaded below, just not
+                 shown. It is written for the provider, so the patient is asked to
+                 hand the device over rather than read clinical notes about
+                 themselves. This is a handoff prompt, not an access control. -->
+            <div class="summary-handoff" id="summaryHandoff">
+                <button type="button" class="btn btn-primary" id="revealSummaryBtn">Review summary</button>
+            </div>
+
+            <!-- State 2 (provider): revealed by the button above. Scrolling middle
+                 section — the pinned title and action button stay visible no matter
+                 how long this gets. -->
+            <div class="summary-scroll hidden" id="summaryScroll">
+
+                <section class="summary-card">
+                    <h3 class="summary-card-title" id="summaryCardTitle">Conversation Summary</h3>
+
+                    <div class="summary-loading" id="summaryLoading" role="status" aria-live="polite">
+                        <span class="summary-spinner" aria-hidden="true"></span>
+                        <span id="summaryLoadingText">Preparing your summary…</span>
+                    </div>
+
+                    <div class="summary-content hidden" id="summaryContent">
+                        <h4 class="summary-section-title" id="summaryQuestionsTitle">Questions you asked</h4>
+                        <div class="summary-text" id="summaryQuestions"></div>
+                        <h4 class="summary-section-title" id="summaryActionsTitle">Things to discuss with your provider</h4>
+                        <div class="summary-text" id="summaryActions"></div>
+                    </div>
+
+                    <p class="summary-error hidden" id="summaryError">We couldn't prepare a summary this time. Your full conversation is still below.</p>
+                </section>
+
+                <section class="transcript-card">
+                    <button type="button" class="transcript-toggle" id="transcriptToggle"
+                            aria-expanded="false" aria-controls="transcriptBody">
+                        <span class="transcript-toggle-caret" aria-hidden="true">▸</span>
+                        <span id="transcriptToggleText">Show full conversation</span>
+                        <span class="transcript-count" id="transcriptCount"></span>
+                    </button>
+                    <div class="transcript-body hidden" id="transcriptBody"></div>
+                </section>
+
+            </div>
+
+            <div class="modal-actions">
+            <button class="btn btn-primary" id="closeSummaryBtn">Done</button>
             </div>
         </div>
         </div>
@@ -1526,6 +1814,8 @@ body {
                 emptyTitle: 'Welcome! I can answer any questions you have about HPV!',
                 emptySubtitle: 'Select a question below or type your own',
                 listening: 'Listening...',
+                voiceInput: 'Voice input',
+                stopRecording: 'Stop recording',
                 noMatch: 'I couldn\'t find a predefined answer. Would you like me to use AI to answer? (Set your OpenAI API key in settings)',
                 settingsTitle: 'API Settings',
                 // apiKeyLabel: 'OpenAI API Key',
@@ -1576,6 +1866,29 @@ body {
                 skipBtn: 'Skip',
                 submitFeedbackBtn: 'Submit Feedback',
                 thankYouMessage: 'Thank you for your feedback!',
+                // ── Session summary + transcript popup ────────────────────────
+                // Shown to the patient, in their language, before the summary is revealed.
+                summaryHandoffTitle: 'Please hand this device to your provider',
+                summaryHandoffBody: 'Your provider can review a summary of your conversation on this screen.',
+                revealSummaryBtn: 'Review summary',
+                // Everything below is read by the PROVIDER, so it addresses them and
+                // refers to the patient in the third person. they/them is used because
+                // the app never collects the patient's gender.
+                summaryCardTitle: 'Conversation Summary',
+                summaryLoadingText: 'Preparing the summary…',
+                summaryQuestionsTitle: 'Questions they asked',
+                summaryActionsTitle: 'Suggested follow-up',
+                summaryUnavailable: "We couldn't prepare a summary this time. Their full conversation is still below.",
+                transcriptTitle: 'Full conversation',
+                transcriptShow: 'Show full conversation',
+                transcriptHide: 'Hide full conversation',
+                transcriptCountLabel: '{n} messages',
+                transcriptEmpty: 'No messages were recorded in this conversation.',
+                transcriptRoleUser: 'Patient',
+                transcriptRoleAssistant: 'Assistant',
+                summaryModalTitle: 'Patient visit summary',
+                summaryModalIntro: 'What they asked during this conversation, and suggested follow-up.',
+                closeSummaryBtn: 'Done',
                 noConversationToExport: 'No conversation to export yet.',
                 phiWarning: 'Reminder: It looks like you may be entering personal information ({types}). For your privacy, please avoid sharing personal details.',
                 phiBackendWarning: 'Reminder: Your message may contain personal information. For your privacy, please avoid sharing personal details.',
@@ -1651,6 +1964,8 @@ body {
                 emptyTitle: '¡Bienvenido! ¡Puedo responder cualquier pregunta que tengas sobre el VPH!',
                 emptySubtitle: 'Seleccione una pregunta a continuación o escriba la suya propia',
                 listening: 'Escuchando...',
+                voiceInput: 'Entrada de voz',
+                stopRecording: 'Detener grabación',
                 noMatch: 'No pude encontrar una respuesta predefinida. ¿Quieres que use IA para responder? (Establece tu clave API de OpenAI en configuración)',
                 settingsTitle: 'Configuración de API',
                 // apiKeyLabel: 'Clave API de OpenAI',
@@ -1692,6 +2007,28 @@ body {
                 skipBtn: 'Omitir',
                 submitFeedbackBtn: 'Enviar comentarios',
                 thankYouMessage: '¡Gracias por tus comentarios!',
+                // ── Resumen de la sesión + transcripción ──────────────────────
+                // Para el paciente, antes de mostrar el resumen.
+                summaryHandoffTitle: 'Por favor, entregue este dispositivo a su proveedor de salud',
+                summaryHandoffBody: 'Su proveedor puede revisar en esta pantalla un resumen de su conversación.',
+                revealSummaryBtn: 'Revisar el resumen',
+                // Lo siguiente lo lee el PROVEEDOR. Se usa "el paciente" en lugar de
+                // un pronombre porque el español marca género y la app no lo conoce.
+                summaryCardTitle: 'Resumen de la conversación',
+                summaryLoadingText: 'Preparando el resumen…',
+                summaryQuestionsTitle: 'Preguntas del paciente',
+                summaryActionsTitle: 'Seguimiento sugerido',
+                summaryUnavailable: 'No pudimos preparar un resumen esta vez. La conversación completa del paciente aparece a continuación.',
+                transcriptTitle: 'Conversación completa',
+                transcriptShow: 'Mostrar la conversación completa',
+                transcriptHide: 'Ocultar la conversación completa',
+                transcriptCountLabel: '{n} mensajes',
+                transcriptEmpty: 'No se registraron mensajes en esta conversación.',
+                transcriptRoleUser: 'Paciente',
+                transcriptRoleAssistant: 'Asistente',
+                summaryModalTitle: 'Resumen de la visita del paciente',
+                summaryModalIntro: 'Lo que el paciente preguntó durante esta conversación y el seguimiento sugerido.',
+                closeSummaryBtn: 'Listo',
                 noConversationToExport: 'Aún no hay conversación para exportar.',
                 phiWarning: 'Recordatorio: Parece que está ingresando información personal ({types}). Para su privacidad, evite compartir datos personales.',
                 phiBackendWarning: 'Recordatorio: Su mensaje puede contener información personal. Para su privacidad, evite compartir datos personales.',
@@ -1854,6 +2191,27 @@ body {
         const feedbackTextArea = document.getElementById('feedbackText');
         const skipFeedbackBtnText = document.getElementById('skipFeedbackBtn');
         const submitFeedbackBtnText = document.getElementById('submitFeedbackBtn');
+        // Session summary + transcript modal (step 2 of the end-of-conversation flow)
+        const summaryModal          = document.getElementById('summaryModal');
+        const summaryModalTitle     = document.getElementById('summaryModalTitle');
+        const summaryModalIntro     = document.getElementById('summaryModalIntro');
+        const closeSummaryBtn       = document.getElementById('closeSummaryBtn');
+        const summaryHandoff        = document.getElementById('summaryHandoff');
+        const revealSummaryBtn      = document.getElementById('revealSummaryBtn');
+        const summaryCardTitle      = document.getElementById('summaryCardTitle');
+        const summaryLoading        = document.getElementById('summaryLoading');
+        const summaryLoadingText    = document.getElementById('summaryLoadingText');
+        const summaryContent        = document.getElementById('summaryContent');
+        const summaryQuestionsTitle = document.getElementById('summaryQuestionsTitle');
+        const summaryActionsTitle   = document.getElementById('summaryActionsTitle');
+        const summaryQuestions      = document.getElementById('summaryQuestions');
+        const summaryActions        = document.getElementById('summaryActions');
+        const summaryErrorEl        = document.getElementById('summaryError');
+        const summaryScroll         = document.getElementById('summaryScroll');
+        const transcriptToggle      = document.getElementById('transcriptToggle');
+        const transcriptToggleText  = document.getElementById('transcriptToggleText');
+        const transcriptBody        = document.getElementById('transcriptBody');
+        const transcriptCount       = document.getElementById('transcriptCount');
 
 
         let initialized = false;
@@ -1879,6 +2237,24 @@ body {
         // this seq to reject stale overwrites so the conversation tab always
         // ends up with the most complete history.
         let _messagesSeq = 0;
+
+        // ========== END-OF-CONVERSATION SUMMARY MODAL STATE ==========
+        // The summary the backend generated for this conversation.
+        // {patient_questions, action_items} | null
+        let sessionSummary = null;
+        // Memoised in-flight /api/session/summary request, so a double-click on
+        // "Yes, End Conversation" can never trigger two LLM calls.
+        let _summaryPromise = null;
+        // True from "Yes, End Conversation" until the summary modal is dismissed —
+        // i.e. across both the feedback and summary steps. Suppresses the destructive
+        // session-expiry handling that would otherwise tear those modals off the
+        // screen while the patient is answering or reading.
+        let endFlowActive = false;
+        // True only while the summary modal itself is on screen.
+        let summaryModalOpen = false;
+        let _keepaliveTimer = null;
+        // Feedback answers waiting to be sent with /api/session/end.
+        let pendingFeedback = null;
 
         // Function to add events to the log
         // `extra` lets callers attach additional fields to the persisted event
@@ -1942,14 +2318,84 @@ body {
         // meaning the backend has dropped/expired the session.  Resets UI and
         // forces the next patient to go through the disclaimer before chatting.
         async function handleServerSessionGone() {
+            sessionId = null;
+            clearTimeout(inactivityTimer);
+
+            // Mid end-of-conversation flow the patient is answering feedback or
+            // reading (and maybe copying) their takeaway. Never tear that down under
+            // them — the summary and transcript render from local state and copying
+            // still works, so the only thing lost is the server-side feedback save.
+            if (endFlowActive) {
+                console.warn('Server session gone during end-of-conversation flow — suppressing reset.');
+                return;
+            }
+
             console.warn('Server session gone (404) — resetting for next patient.');
             showToastNotification(
                 'This session has expired. Please review the disclaimer to start a new session.'
             );
-            sessionId = null;
-            clearTimeout(inactivityTimer);
             await startOver();
             showDisclaimer();
+        }
+
+        // Asks the backend for the session summary WITHOUT ending the session, so
+        // the rating / intent / comment events that follow still have a session to
+        // land in. Memoised, so a double-click on "Yes, End Conversation" cannot
+        // trigger two LLM calls.
+        //
+        // Never rejects, and deliberately never calls handleServerSessionGone():
+        // a failed summary must not stop the transcript, the copy button or the
+        // feedback form from working.
+        function requestSessionSummary() {
+            if (_summaryPromise) return _summaryPromise;
+
+            const sid = sessionId;
+            const nonEmptyHistory = chatHistory.filter(m => m.content && m.content.trim() !== '');
+            if (!sid || nonEmptyHistory.length === 0) {
+                _summaryPromise = Promise.resolve(null);
+                return _summaryPromise;
+            }
+
+            _summaryPromise = fetch(BACKEND_DOMAIN + '/api/session/summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: sid,
+                    messages: nonEmptyHistory,
+                    messages_seq: ++_messagesSeq
+                })
+            })
+            .then(r => {
+                if (r.status === 404) { sessionId = null; return null; }   // expired: no UI teardown
+                if (!r.ok) return null;
+                return r.json().then(d => d.summary || null);
+            })
+            .catch(() => null);
+
+            return _summaryPromise;
+        }
+
+        // The patient can sit reading the summary for minutes without interacting,
+        // and the server expires sessions after SESSION_TIMEOUT_MINUTES (5). Ping
+        // activity once a minute so the session survives long enough to receive
+        // the feedback that follows.
+        function startSummaryModalKeepalive() {
+            stopSummaryModalKeepalive();
+            _keepaliveTimer = setInterval(() => {
+                if (!sessionId) return;
+                fetch(BACKEND_DOMAIN + '/api/session/activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                })
+                // Intentionally does NOT call handleServerSessionGone() — see above.
+                .then(r => { if (r.status === 404) sessionId = null; })
+                .catch(() => {});
+            }, 60000);
+        }
+
+        function stopSummaryModalKeepalive() {
+            if (_keepaliveTimer) { clearInterval(_keepaliveTimer); _keepaliveTimer = null; }
         }
 
         async function endSession() {
@@ -1965,11 +2411,22 @@ body {
                 return null;
             }
 
+            // Send the feedback answers in this request rather than relying on the
+            // fire-and-forget event POSTs: those race /api/session/end, which pops
+            // the session server-side, so a comment could otherwise be dropped.
+            const fb = pendingFeedback;
+            pendingFeedback = null;
+
             try {
                 const resp = await fetch(BACKEND_DOMAIN + '/api/session/end', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sid, messages: nonEmptyHistory, messages_seq: ++_messagesSeq })
+                    body: JSON.stringify({
+                        session_id: sid,
+                        messages: nonEmptyHistory,
+                        messages_seq: ++_messagesSeq,
+                        ...(fb ? { feedback: fb } : {})
+                    })
                 });
                 const data = await resp.json();
                 return data.summary || null;
@@ -2079,10 +2536,15 @@ body {
             if (nonEmptyHistory.length === 0) { sessionId = null; return; }
             const sid = sessionId;
             sessionId = null;   // make any later end() / beacon a no-op (no double save)
+            // If the tab is closed mid-flow, carry whatever the patient had already
+            // selected — otherwise those answers are lost.
+            const fb = pendingFeedback || (endFlowActive ? collectFeedbackPayload() : null);
+            pendingFeedback = null;
             beaconPost('/api/session/end', {
                 session_id: sid,
                 messages: nonEmptyHistory,
-                messages_seq: ++_messagesSeq
+                messages_seq: ++_messagesSeq,
+                ...(fb ? { feedback: fb } : {})
             });
         }
 
@@ -2136,6 +2598,19 @@ body {
             addEvent('Disclaimer Accepted', 'Chat Assistant User accepted disclaimer that this website is not a replacement for a medical doctor. And that any information provided is for education only and is not personal medical advice.');
         });
 
+        // Visual "recording" state for the mic button. Deliberately separate from
+        // `isListening` (which tracks the real recognition state) so it can be
+        // applied the instant the button is pressed: onstart lags behind the
+        // browser's microphone permission prompt and does not fire at all on some
+        // browsers, which left the button looking untouched while recording.
+        function setMicListening(on) {
+            micBtn.classList.toggle('active', on);
+            micBtn.classList.toggle('listening', on);
+            const t = translations[currentLang];
+            micBtn.title = on ? t.stopRecording : t.voiceInput;
+            micBtn.setAttribute('aria-label', micBtn.title);
+        }
+
         // Initialize Speech Recognition
         function initSpeechRecognition() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -2146,7 +2621,7 @@ body {
                 
                 recognition.onstart = () => {
                     isListening = true;
-                    micBtn.classList.add('active', 'listening');
+                    setMicListening(true);
                     addEvent('Voice Input', 'Started listening')
                 };
                 
@@ -2165,7 +2640,7 @@ body {
                 recognition.onerror = (event) => {
                     console.error('Speech recognition error:', event.error);
                     isListening = false;
-                    micBtn.classList.remove('active', 'listening');
+                    setMicListening(false);
                     
                     // Show error message based on error type
                     let errorMsg = translations[currentLang].noSpeech;
@@ -2189,7 +2664,7 @@ body {
 
                 recognition.onend = () => {
                     isListening = false;
-                    micBtn.classList.remove('active', 'listening');
+                    setMicListening(false);
                 };
             } else {
                 // Show not supported message
@@ -2232,6 +2707,9 @@ body {
 
             if (recognition) {
                 recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+                // Re-apply the mic tooltip in the new language, preserving
+                // whichever state the button is currently in.
+                setMicListening(micBtn.classList.contains('listening'));
             }
 
             // If the feature tour is open, refresh its text in the new language
@@ -2278,6 +2756,19 @@ body {
                     btn.textContent = intentTexts[index];
                 }
             });
+
+            // Session summary + transcript sections
+            summaryCardTitle.textContent      = t.summaryCardTitle;
+            summaryLoadingText.textContent    = t.summaryLoadingText;
+            summaryQuestionsTitle.textContent = t.summaryQuestionsTitle;
+            summaryActionsTitle.textContent   = t.summaryActionsTitle;
+            summaryErrorEl.textContent        = t.summaryUnavailable;
+            closeSummaryBtn.textContent       = t.closeSummaryBtn;
+            applySummaryModalText();   // title/intro depend on which state is showing
+            updateTranscriptToggleLabel();
+            // Defensive: the language toggle sits behind the modal overlay, so this
+            // should not happen — but if it ever does, re-label You/Assistant.
+            if (summaryModalOpen) renderTranscript();
         }
 
 
@@ -2657,8 +3148,14 @@ body {
         }
 
         function confirmEndConversation() {
+            addEvent('Button Click', 'End Conversation Confirmed');
             hideModal(endConversationModal);
-            // Show feedback modal after a brief delay
+
+            // Kick the summary request off immediately so it generates while the
+            // patient answers the feedback questions, instead of being waited on
+            // when the summary modal opens.
+            requestSessionSummary();
+
             setTimeout(() => {
                 showFeedbackModal();
             }, 500);
@@ -2669,10 +3166,21 @@ body {
             hideModal(endConversationModal);
         }
 
-        // Feedback Modal
+        // ==========================================================================
+        // END-OF-CONVERSATION FLOW
+        // --------------------------------------------------------------------------
+        //   End Conversation → confirm → [1] feedback modal → [2] summary modal → reset
+        //
+        // The summary request is fired at confirm time, so it generates while the
+        // patient is answering the feedback questions and is almost always ready by
+        // the time step 2 appears. The session stays alive through both steps —
+        // /api/session/summary is non-destructive — and /api/session/end only fires
+        // at the very end, carrying the feedback answers with it.
+        // ==========================================================================
         let selectedRating = null;
         let selectedIntent = null;   // '1'..'5' — vaccination intent (optional)
 
+        // ── Step 1: feedback ──────────────────────────────────────────────────────
         function showFeedbackModal() {
             // Reset feedback form
             selectedRating = null;
@@ -2681,27 +3189,145 @@ body {
             ratingBtns.forEach(btn => btn.classList.remove('selected'));
             intentBtns.forEach(btn => btn.classList.remove('selected'));
 
+            endFlowActive = true;
+            startSummaryModalKeepalive();
             showModal(feedbackModal);
         }
 
         async function submitFeedback() {
-            feedbackTextVal = feedbackText.value.trim();
-            if (feedbackTextVal != "") {
+            const feedbackTextVal = feedbackText.value.trim();
+            if (feedbackTextVal !== "") {
                 addEvent('Text Feedback Submitted', feedbackTextVal);
-                console.log('Text Feedback submitted:', feedbackTextVal);
             }
-
-            // Here you can send feedback to your backend if needed
-            // fetch(`${BACKEND_DOMAIN}/api/feedback`, { ... })
-
-            hideModal(feedbackModal);
-            await startOver();
-            showDisclaimer(); // Next patient must accept disclaimer before a new session begins
+            addEvent('Button Click', 'Feedback Submitted');
+            await finishFeedback();
         }
 
         async function skipFeedback() {
             addEvent('Button Click', 'Feedback Skipped');
+            await finishFeedback();
+        }
+
+        // Both feedback paths converge here: snapshot the answers, then hand off to
+        // the summary modal. Skip keeps any rating/intent already tapped.
+        async function finishFeedback() {
+            pendingFeedback = collectFeedbackPayload();   // consumed by endSession()
             hideModal(feedbackModal);
+            setTimeout(() => showSummaryModal(), 500);
+        }
+
+        // Snapshot the feedback answers so they can travel in the /api/session/end
+        // request body. The strings match the formats the rating/intent click
+        // handlers already log as events, so the dashboard and any downstream
+        // analysis see identical values whichever path delivered them.
+        function collectFeedbackPayload() {
+            const payload = {};
+            if (selectedRating) {
+                payload.rating = `Rating: ${selectedRating}/5 (5 is highest)`;
+            }
+            if (selectedIntent) {
+                const label = (translations.en.intentLogLabels || [])[Number(selectedIntent) - 1] || selectedIntent;
+                payload.vaccination_intent =
+                    `Intent to get HPV vaccine: ${label} (${selectedIntent}/5, 5 = definitely yes)`;
+            }
+            const comment = feedbackText.value.trim();
+            if (comment) payload.comments = comment;
+            return Object.keys(payload).length ? payload : null;
+        }
+
+        // ── Step 2: hand off to the provider, then show the summary ───────────────
+        // The modal opens on the handoff prompt. The summary is fetched and rendered
+        // underneath straight away — it is only hidden — so revealing it is instant.
+        let summaryRevealed = false;
+
+        function showSummaryModal() {
+            sessionSummary = null;
+            setSummaryState('loading');
+            renderTranscript();
+            collapseTranscript();
+            if (summaryScroll) summaryScroll.scrollTop = 0;
+
+            // Always open on the patient-facing handoff prompt.
+            summaryRevealed = false;
+            summaryHandoff.classList.remove('hidden');
+            summaryScroll.classList.add('hidden');
+            applySummaryModalText();
+
+            summaryModalOpen = true;
+            // The floating language toggle sits at a higher z-index than the modal
+            // overlay, so it would otherwise hover on top of the summary. Hide it
+            // while this modal is up; closeSummaryModal() re-syncs it.
+            globalLangToggle.classList.remove('is-visible');
+            showModal(summaryModal);
+
+            requestSessionSummary().then(summary => {
+                // The patient may have already dismissed the modal while the summary
+                // was still generating — don't write into a closed modal.
+                if (!summaryModalOpen) return;
+                sessionSummary = summary;
+                if (summary && (summary.patient_questions || summary.action_items)) {
+                    summaryQuestions.textContent = normaliseBullets(summary.patient_questions);
+                    summaryActions.textContent   = normaliseBullets(summary.action_items);
+                    setSummaryState('ready');
+                } else {
+                    setSummaryState('error');
+                }
+            });
+
+            addEvent('Modal Shown', 'Session Summary Modal');
+        }
+
+        // The title and intro address whoever is currently reading: the patient
+        // while the handoff prompt is up, the provider once the summary is shown.
+        function applySummaryModalText() {
+            const t = translations[currentLang];
+            summaryModalTitle.textContent = summaryRevealed ? t.summaryModalTitle : t.summaryHandoffTitle;
+            summaryModalIntro.textContent = summaryRevealed ? t.summaryModalIntro : t.summaryHandoffBody;
+            revealSummaryBtn.textContent  = t.revealSummaryBtn;
+        }
+
+        // Reveals the provider view. A deliberate handoff step, not access control —
+        // the content is already on the page, so this is a prompt to pass the device
+        // over rather than a barrier.
+        function revealSummaryForProvider() {
+            summaryRevealed = true;
+            summaryHandoff.classList.add('hidden');
+            summaryScroll.classList.remove('hidden');
+            summaryScroll.scrollTop = 0;
+            applySummaryModalText();
+            addEvent('Button Click', 'Summary Revealed to Provider');
+        }
+
+        // state: 'loading' | 'ready' | 'error'
+        function setSummaryState(state) {
+            summaryLoading.classList.toggle('hidden', state !== 'loading');
+            summaryContent.classList.toggle('hidden', state !== 'ready');
+            summaryErrorEl.classList.toggle('hidden', state !== 'error');
+        }
+
+        // The summary arrives as "• line\n• line" plain text. Normalise the bullet
+        // characters and spacing so the on-screen block reads consistently
+        // whatever the model emitted.
+        function normaliseBullets(text) {
+            if (!text || !String(text).trim()) return '—';
+            return String(text)
+                .split('\n')
+                .map(l => l.trim())
+                .filter(Boolean)
+                // Strip whatever bullet marker the model used, then apply ours, so
+                // mixed "-", "*" and "•" output renders as one consistent list.
+                .map(l => '• ' + l.replace(/^[-*•·]\s*/, ''))
+                .join('\n');
+        }
+
+        // "Done" — the only way out of the summary modal, and the end of the flow.
+        async function closeSummaryModal() {
+            addEvent('Button Click', 'Summary Closed');
+            summaryModalOpen = false;
+            endFlowActive = false;
+            stopSummaryModalKeepalive();
+            hideModal(summaryModal);
+            syncGlobalLangToggle();   // restore whatever the underlying UI state wants
             await startOver();
             showDisclaimer(); // Next patient must accept disclaimer before a new session begins
         }
@@ -3091,6 +3717,68 @@ body {
             return div.innerHTML;
         }
 
+        // ==========================================================================
+        // END-OF-CONVERSATION TRANSCRIPT
+        // ==========================================================================
+
+        // Render the conversation into the collapsible transcript section.
+        // Built with createElement + textContent rather than innerHTML: there is no
+        // escaping to get wrong, and it does not depend on marked or on the
+        // .message-text.markdown-body styles, which are scoped to chat bubbles.
+        function renderTranscript() {
+            const t = translations[currentLang];
+            transcriptBody.innerHTML = '';
+
+            const turns = chatHistory.filter(m => m.content && m.content.trim() !== '');
+            transcriptCount.textContent = (t.transcriptCountLabel || '{n} messages')
+                .replace('{n}', turns.length);
+
+            if (turns.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'transcript-text';
+                empty.textContent = t.transcriptEmpty;
+                transcriptBody.appendChild(empty);
+                return;
+            }
+
+            turns.forEach(m => {
+                const wrap = document.createElement('div');
+                wrap.className = 'transcript-turn transcript-turn--' +
+                                 (m.role === 'user' ? 'user' : 'assistant');
+
+                const role = document.createElement('span');
+                role.className = 'transcript-role';
+                role.textContent = m.role === 'user' ? t.transcriptRoleUser : t.transcriptRoleAssistant;
+
+                const body = document.createElement('div');
+                body.className = 'transcript-text';
+                body.textContent = m.content.trim();
+
+                wrap.append(role, body);
+                transcriptBody.appendChild(wrap);
+            });
+        }
+
+        function collapseTranscript() {
+            transcriptBody.classList.add('hidden');
+            transcriptToggle.setAttribute('aria-expanded', 'false');
+            updateTranscriptToggleLabel();
+        }
+
+        function toggleTranscript() {
+            const expanded = transcriptToggle.getAttribute('aria-expanded') === 'true';
+            transcriptBody.classList.toggle('hidden', expanded);
+            transcriptToggle.setAttribute('aria-expanded', String(!expanded));
+            updateTranscriptToggleLabel();
+            addEvent('Button Click', expanded ? 'Transcript Collapsed' : 'Transcript Expanded');
+        }
+
+        function updateTranscriptToggleLabel() {
+            const t = translations[currentLang];
+            const expanded = transcriptToggle.getAttribute('aria-expanded') === 'true';
+            transcriptToggleText.textContent = expanded ? t.transcriptHide : t.transcriptShow;
+        }
+
         // PHI/PII Detection (fully local, regex-based, no external calls)
         // Patterns are language-agnostic where possible; language-specific
         // variants are combined via alternation so the same set works for
@@ -3179,9 +3867,17 @@ body {
 
         async function startOver() {
             endSession();                // Fire-and-forget: saves to backend without blocking UI reset
+                                         // (it also consumes pendingFeedback, so that
+                                         //  must not be cleared before this call)
             chatHistory = [];
             eventLog = [];
             _messagesSeq = 0;   // fresh sequence for the next session
+            // Per-conversation summary state — the next patient starts clean.
+            sessionSummary = null;
+            _summaryPromise = null;
+            summaryModalOpen = false;
+            endFlowActive = false;
+            stopSummaryModalKeepalive();
             messages.innerHTML = '';
             wasVoiceInput = false;
             stopSpeaking();
@@ -3256,9 +3952,14 @@ body {
         cancelEndBtn.addEventListener('click', cancelEndConversation);
         confirmEndBtn.addEventListener('click', confirmEndConversation);
 
-        // Feedback Modal Listeners
+        // Feedback Modal Listeners (step 1)
         skipFeedbackBtn.addEventListener('click', skipFeedback);
         submitFeedbackBtn.addEventListener('click', submitFeedback);
+
+        // Summary Modal Listeners (step 2)
+        closeSummaryBtn.addEventListener('click', closeSummaryModal);
+        revealSummaryBtn.addEventListener('click', revealSummaryForProvider);
+        transcriptToggle.addEventListener('click', toggleTranscript);
 
         // Rating button listeners
         ratingBtns.forEach(btn => {
@@ -3294,11 +3995,9 @@ body {
         }
         });
 
-        feedbackModal.addEventListener('click', (e) => {
-        if (e.target === feedbackModal) {
-            skipFeedback();
-        }
-        });
+        // The summary modal is deliberately NOT closed by a backdrop tap. It is the
+        // patient's takeaway — an accidental tap on the dark area must not discard
+        // the summary and transcript. Skip / Submit are the only ways out.
 
 
         sendBtn.addEventListener('click', handleSendMessage);
@@ -3327,13 +4026,18 @@ body {
             
             if (isListening) {
                 recognition.stop();
+                setMicListening(false);
             } else {
                 // Set language based on current selection
                 recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
+                // Show the recording state immediately rather than waiting for
+                // onstart; onerror/onend below clear it again if it never starts.
+                setMicListening(true);
                 try {
                     recognition.start();
                 } catch (error) {
                     console.error('Error starting recognition:', error);
+                    setMicListening(false);
                 }
             }
         });
