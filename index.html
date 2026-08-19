@@ -2074,6 +2074,10 @@ body {
 
         // Application State
         let currentLang = 'en';
+        // Everything behind the "Review summary" button is read by the PROVIDER, who
+        // may not share the patient's language, so that view always renders in English.
+        // The handoff prompt in front of it stays in the patient's chosen language.
+        const providerText = translations.en;
         let chatHistory = [];
         let isListening = false;
         let recognition = null;
@@ -2757,14 +2761,13 @@ body {
                 }
             });
 
-            // Session summary + transcript sections
-            summaryCardTitle.textContent      = t.summaryCardTitle;
-            summaryLoadingText.textContent    = t.summaryLoadingText;
-            summaryQuestionsTitle.textContent = t.summaryQuestionsTitle;
-            summaryActionsTitle.textContent   = t.summaryActionsTitle;
-            summaryErrorEl.textContent        = t.summaryUnavailable;
-            closeSummaryBtn.textContent       = t.closeSummaryBtn;
-            applySummaryModalText();   // title/intro depend on which state is showing
+            // Session summary + transcript — the provider view, always English.
+            summaryCardTitle.textContent      = providerText.summaryCardTitle;
+            summaryLoadingText.textContent    = providerText.summaryLoadingText;
+            summaryQuestionsTitle.textContent = providerText.summaryQuestionsTitle;
+            summaryActionsTitle.textContent   = providerText.summaryActionsTitle;
+            summaryErrorEl.textContent        = providerText.summaryUnavailable;
+            applySummaryModalText();   // title/intro/Done depend on which state is showing
             updateTranscriptToggleLabel();
             // Defensive: the language toggle sits behind the modal overlay, so this
             // should not happen — but if it ever does, re-label You/Assistant.
@@ -3279,11 +3282,14 @@ body {
 
         // The title and intro address whoever is currently reading: the patient
         // while the handoff prompt is up, the provider once the summary is shown.
+        // Hence the language swap too — the provider side is always English.
         function applySummaryModalText() {
             const t = translations[currentLang];
-            summaryModalTitle.textContent = summaryRevealed ? t.summaryModalTitle : t.summaryHandoffTitle;
-            summaryModalIntro.textContent = summaryRevealed ? t.summaryModalIntro : t.summaryHandoffBody;
+            summaryModalTitle.textContent = summaryRevealed ? providerText.summaryModalTitle : t.summaryHandoffTitle;
+            summaryModalIntro.textContent = summaryRevealed ? providerText.summaryModalIntro : t.summaryHandoffBody;
             revealSummaryBtn.textContent  = t.revealSummaryBtn;
+            // Shared by both states — the only footer button, so it follows the state.
+            closeSummaryBtn.textContent   = summaryRevealed ? providerText.closeSummaryBtn : t.closeSummaryBtn;
         }
 
         // Reveals the provider view. A deliberate handoff step, not access control —
@@ -3726,7 +3732,9 @@ body {
         // escaping to get wrong, and it does not depend on marked or on the
         // .message-text.markdown-body styles, which are scoped to chat bubbles.
         function renderTranscript() {
-            const t = translations[currentLang];
+            // Provider view: labels stay English. Message bodies below are the
+            // verbatim conversation, so they keep whatever language the patient used.
+            const t = providerText;
             transcriptBody.innerHTML = '';
 
             const turns = chatHistory.filter(m => m.content && m.content.trim() !== '');
@@ -3774,7 +3782,7 @@ body {
         }
 
         function updateTranscriptToggleLabel() {
-            const t = translations[currentLang];
+            const t = providerText;   // provider view — always English
             const expanded = transcriptToggle.getAttribute('aria-expanded') === 'true';
             transcriptToggleText.textContent = expanded ? t.transcriptHide : t.transcriptShow;
         }
