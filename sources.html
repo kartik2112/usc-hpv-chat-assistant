@@ -155,7 +155,7 @@
 <!-- ── Page ─────────────────────────────────────────────────────────────────── -->
 <div class="page">
     <div class="page-inner" id="pageInner">
-        <div class="loading"><div class="spinner"></div><span>Loading sources…</span></div>
+        <div class="loading"><div class="spinner"></div><span>Reading ChromaCloud…</span></div>
     </div>
 </div>
 
@@ -165,19 +165,26 @@
 <script src="variants.js"></script>
 <script src="dashboard.js"></script>
 <script>
-    // This page is read-only: it shows which web pages and PDFs are indexed in
-    // the open variant's Chroma collection, and what the last index build did
-    // with each. Sources are curated in rag_sources.json on the server; edits
-    // waiting for the nightly refresh show up here as "pending".
+    // This page is read-only. The rows come from ChromaCloud itself — the
+    // backend reads the collection's chunk metadata on every load — so it shows
+    // what the assistant can actually retrieve, not what a config file claims.
+    // The sources file on the server only supplies titles and tells us which
+    // URLs are configured, which is what the non-"indexed" statuses report.
 
-    // How each backend status is presented: [chip class, label, explanation].
+    // How each status is presented: [chip class, label, explanation].
     const STATUS_TEXT = {
-        unchanged:       ['status-indexed', 'Indexed',    ''],
-        added:           ['status-indexed', 'Added',      'First indexed in the last refresh.'],
-        updated:         ['status-indexed', 'Updated',    'Content changed — re-indexed in the last refresh.'],
-        failed:          ['status-failed',  'Failed',     'Could not be fetched in the last refresh.'],
-        pending:         ['status-pending', 'Pending',    'Added to the sources file; indexed at the next refresh.'],
-        pending_removal: ['status-muted',   'To remove',  'No longer in the sources file; dropped at the next refresh.'],
+        indexed:       ['status-indexed', 'In ChromaCloud', ''],
+        not_indexed:   ['status-pending', 'Not indexed',
+                        'Configured on the server but nothing is in ChromaCloud yet — indexed at the next refresh.'],
+        not_in_config: ['status-muted',   'Not configured',
+                        'In ChromaCloud but no longer in the sources file — dropped at the next refresh.'],
+    };
+
+    // Extra line when the most recent crawl in this server had something to say.
+    const LAST_BUILD_NOTE = {
+        failed:  'The last refresh could not fetch it.',
+        added:   'First indexed in the last refresh.',
+        updated: 'Content changed — re-indexed in the last refresh.',
     };
 
     function fmtDateTime(iso) {
@@ -195,7 +202,7 @@
 
     async function loadSources() {
         const container = document.getElementById('pageInner');
-        container.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading sources…</span></div>`;
+        container.innerHTML = `<div class="loading"><div class="spinner"></div><span>Reading ChromaCloud…</span></div>`;
         try {
             const resp = await authFetch('/api/rag/sources');
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -208,29 +215,30 @@
     function render(data) {
         const sources = data.sources || [];
         const chunks = sources.reduce((total, s) => total + (s.chunks || 0), 0);
-        const issues = sources.filter(s => s.status !== 'unchanged' && s.status !== 'added' && s.status !== 'updated').length;
+        const issues = sources.filter(s => s.status !== 'indexed' || s.last_build === 'failed').length;
         document.getElementById('statSources').textContent = sources.length;
         document.getElementById('statChunks').textContent = chunks;
         document.getElementById('statIssues').textContent = issues;
 
         const notices = [];
+        if (data.live_error) {
+            notices.push(`<div class="notice warn">⚠️ ChromaCloud could not be read, so nothing can be listed:
+                ${escHtml(data.live_error)}</div>`);
+        }
         if (data.config_error) {
-            notices.push(`<div class="notice warn">⚠️ The sources file on the server could not be read, so this shows the
-                live index only. Fix it before the next refresh: ${escHtml(data.config_error)}</div>`);
+            notices.push(`<div class="notice warn">⚠️ The sources file on the server could not be read, so titles and
+                the "not configured" flag are unavailable — the ChromaCloud contents below are still accurate.
+                Fix it before the next refresh: ${escHtml(data.config_error)}</div>`);
         }
         if (data.chroma_pending) {
             notices.push(`<div class="notice warn">⚠️ The sources file points at a different collection
                 (<strong>${escHtml(data.chroma_pending.collection)}</strong> in
                 ${escHtml(data.chroma_pending.database)}). It takes effect at the next refresh.</div>`);
         }
-        if ((data.removed || []).length) {
-            notices.push(`<div class="notice">🧹 The last refresh removed ${data.removed.length}
-                source${data.removed.length > 1 ? 's' : ''} from this collection:
-                ${data.removed.map(u => escHtml(sourceLabel(u))).join(', ')}</div>`);
-        }
 
         const rows = sources.map(source => {
-            const [chipClass, label, note] = STATUS_TEXT[source.status] || ['status-muted', source.status, ''];
+            const [chipClass, label, statusNote] = STATUS_TEXT[source.status] || ['status-muted', source.status, ''];
+            const note = [statusNote, LAST_BUILD_NOTE[source.last_build]].filter(Boolean).join(' ');
             const kind = sourceKind(source);
             return `
                 <tr>
@@ -259,7 +267,11 @@
                     <span class="info-value mono">${escHtml(data.chroma.database)}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Last indexed</span>
+                    <span class="info-label">Read from ChromaCloud</span>
+                    <span class="info-value">${escHtml(fmtDateTime(data.fetched_at))}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last refresh</span>
                     <span class="info-value">${escHtml(fmtDateTime(data.built_at))}</span>
                 </div>
                 <div class="info-item">
@@ -280,9 +292,10 @@
                     </thead>
                     <tbody>${rows}</tbody>
                 </table>`
-              : `<div class="notice">No sources are configured for this variant yet.</div>`}
-            <div class="notice">Sources are curated on the server in <code>rag_sources.json</code> and re-crawled
-                nightly (1&nbsp;AM). This page is read-only.</div>`;
+              : `<div class="notice">This ChromaCloud collection is empty and nothing is configured for this variant yet.</div>`}
+            <div class="notice">Listed straight from ChromaCloud. Sources are curated on the server in
+                <code>rag_sources.json</code> and crawled into the collection nightly (1&nbsp;AM).
+                This page is read-only.</div>`;
     }
 
     document.getElementById('refreshBtn').addEventListener('click', loadSources);

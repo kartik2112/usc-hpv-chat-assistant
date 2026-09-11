@@ -12,7 +12,7 @@ Static site, no build step. Deployed to GitHub Pages (`kartik2112.github.io`) an
 |---|---|
 | `index.html` | Patient chat: HTML + CSS + JS in one file (~4.3k lines) |
 | `sessions.html` | Provider dashboard: saved conversations (~1.5k lines) |
-| `sources.html` | Provider dashboard: the web pages / PDFs indexed in the variant's Chroma collection (read-only) |
+| `sources.html` | Provider dashboard: the web pages / PDFs actually in the variant's Chroma collection, read live from Chroma per load (read-only) |
 | `variants.js` | **Variant registry**: labels, UI overrides, starter questions + follow-ups (en/es) for `general` and `postpartum` |
 | `config.js` | `BACKEND_DOMAIN` (sackend vs Render; `?backend=` override accepted **only for localhost**) |
 | `dashboard.js` / `dashboard.css` | Shell shared by both dashboard pages: password gate (markup injected), token + its variant scope, view chooser / switcher, `authFetch`, `escHtml`, `sourceLabel`; and the shared styles |
