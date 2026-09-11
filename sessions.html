@@ -6,212 +6,8 @@
     <title>HPV Health Assistant — Session Dashboard</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <link rel="stylesheet" href="dashboard.css">
     <style>
-        /* ── Design System (mirrors index.html) ─────────────────────────── */
-        :root {
-            --color-white: rgba(255,255,255,1);
-            --color-black: rgba(0,0,0,1);
-            --color-cream-50: rgba(252,252,249,1);
-            --color-cream-100: rgba(255,255,253,1);
-            --color-gray-200: rgba(245,245,245,1);
-            --color-gray-300: rgba(167,169,169,1);
-            --color-gray-400: rgba(119,124,124,1);
-            --color-slate-500: rgba(98,108,113,1);
-            --color-brown-600: rgba(94,82,64,1);
-            --color-charcoal-700: rgba(31,33,33,1);
-            --color-charcoal-800: rgba(38,40,40,1);
-            --color-slate-900: rgba(19,52,59,1);
-            --color-teal-300: rgba(50,184,198,1);
-            --color-teal-500: rgba(33,128,141,1);
-            --color-usc-cardinal: rgba(153,27,30,1);
-            --color-usc-cardinal-dark: rgba(123,35,46,1);
-            --color-usc-gold: rgba(255,204,0,1);
-            --color-usc-gold-light: rgba(254,246,211,1);
-            --color-brown-600-rgb: 94,82,64;
-            --color-slate-900-rgb: 19,52,59;
-
-            --color-background: var(--color-cream-50);
-            --color-surface: var(--color-cream-100);
-            --color-text: var(--color-slate-900);
-            --color-text-secondary: var(--color-slate-500);
-            --color-primary: var(--color-usc-cardinal);
-            --color-primary-hover: var(--color-usc-cardinal-dark);
-            --color-btn-primary-text: var(--color-usc-gold);
-            --color-border: rgba(var(--color-brown-600-rgb), 0.2);
-            --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
-            --color-secondary: rgba(var(--color-brown-600-rgb), 0.08);
-            --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.14);
-
-            --font-family-base: "FKGroteskNeue","Geist","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-            --font-family-mono: "Berkeley Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-            --font-size-xs: 11px;
-            --font-size-sm: 12px;
-            --font-size-base: 14px;
-            --font-size-md: 16px;
-            --font-size-lg: 17px;
-            --font-size-xl: 18px;
-            --font-size-2xl: 20px;
-            --font-size-3xl: 24px;
-            --font-weight-normal: 400;
-            --font-weight-medium: 500;
-            --font-weight-semibold: 550;
-            --font-weight-bold: 600;
-            --line-height-normal: 1.5;
-
-            --space-4: 4px; --space-6: 6px; --space-8: 8px; --space-10: 10px;
-            --space-12: 12px; --space-16: 16px; --space-20: 20px; --space-24: 24px;
-            --space-32: 32px;
-            --radius-sm: 6px; --radius-base: 8px; --radius-md: 10px;
-            --radius-lg: 12px; --radius-full: 9999px;
-            --shadow-xs: 0 1px 2px rgba(0,0,0,.02);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.02);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,.04),0 2px 4px -1px rgba(0,0,0,.02);
-            --duration-fast: 150ms;
-            --ease-standard: cubic-bezier(0.16,1,0.3,1);
-        }
-
-        @font-face {
-            font-family: 'FKGroteskNeue';
-            src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
-        }
-
-        * { margin:0; padding:0; box-sizing:border-box; }
-
-        body {
-            font-family: var(--font-family-base);
-            background: var(--color-background);
-            color: var(--color-text);
-            line-height: var(--line-height-normal);
-            -webkit-font-smoothing: antialiased;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* ── Header ──────────────────────────────────────────────────────── */
-        .header {
-            background: var(--color-surface);
-            border-bottom: 1px solid var(--color-card-border);
-            padding: var(--space-16) var(--space-24);
-            box-shadow: var(--shadow-sm);
-            flex-shrink: 0;
-            z-index: 100;
-        }
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: var(--space-16);
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .header-left { display:flex; align-items:center; gap:var(--space-16); }
-        .header-icon { font-size: 28px; }
-        .header-title {
-            font-size: var(--font-size-2xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--color-text);
-        }
-        .header-subtitle {
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-            margin-top: 2px;
-        }
-        .header-badge {
-            background: var(--color-primary);
-            color: var(--color-usc-gold);
-            font-size: var(--font-size-xs);
-            font-weight: var(--font-weight-bold);
-            padding: 3px 10px;
-            border-radius: var(--radius-full);
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        /* ── Buttons ─────────────────────────────────────────────────────── */
-        .btn {
-            padding: var(--space-8) var(--space-16);
-            border-radius: var(--radius-base);
-            border: 1px solid var(--color-border);
-            background: var(--color-surface);
-            color: var(--color-text);
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-medium);
-            cursor: pointer;
-            transition: all var(--duration-fast) var(--ease-standard);
-            font-family: var(--font-family-base);
-            display: inline-flex;
-            align-items: center;
-            gap: var(--space-6);
-            text-decoration: none;
-        }
-        .btn:hover { background: var(--color-secondary-hover); }
-        .btn-primary {
-            background: var(--color-primary);
-            color: var(--color-btn-primary-text);
-            border: none;
-        }
-        .btn-primary:hover { background: var(--color-primary-hover); }
-
-        /* ── Stats Bar ───────────────────────────────────────────────────── */
-        .stats-bar {
-            background: var(--color-surface);
-            border-bottom: 1px solid var(--color-card-border);
-            padding: var(--space-12) var(--space-24);
-            flex-shrink: 0;
-        }
-        .stats-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            gap: var(--space-32);
-            align-items: center;
-        }
-        .stat {
-            display: flex;
-            align-items: baseline;
-            gap: var(--space-6);
-        }
-        .stat-value {
-            font-size: var(--font-size-2xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--color-primary);
-        }
-        .stat-label {
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-        }
-        .stats-divider {
-            width: 1px;
-            height: 28px;
-            background: var(--color-border);
-        }
-        .search-wrap {
-            position: relative;
-        }
-        .search-input {
-            font-family: var(--font-family-base);
-            font-size: var(--font-size-sm);
-            padding: var(--space-8) var(--space-12) var(--space-8) 34px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            background: var(--color-background);
-            color: var(--color-text);
-            width: 220px;
-            outline: none;
-            transition: border-color var(--duration-fast);
-        }
-        .search-input:focus { border-color: var(--color-primary); }
-        .search-icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 14px;
-            pointer-events: none;
-        }
-
         /* ── Main Layout ─────────────────────────────────────────────────── */
         .main {
             flex: 1;
@@ -287,21 +83,6 @@
             gap: var(--space-8);
             flex-wrap: wrap;
         }
-        .btn-sm {
-            padding: var(--space-4) var(--space-10);
-            font-size: var(--font-size-xs);
-            border-radius: var(--radius-sm);
-        }
-        .btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
-        .btn-danger {
-            background: var(--color-primary);
-            color: var(--color-white);
-            border: none;
-        }
-        .btn-danger:hover { background: var(--color-primary-hover); }
         .filter-chip {
             display: inline-flex;
             align-items: center;
@@ -848,36 +629,6 @@
             overflow-y: auto;
         }
 
-        /* ── Loading / Error states ──────────────────────────────────────── */
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-32);
-            gap: var(--space-12);
-            color: var(--color-text-secondary);
-        }
-        .spinner {
-            width: 28px;
-            height: 28px;
-            border: 3px solid var(--color-card-border);
-            border-top-color: var(--color-primary);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .error-banner {
-            background: rgba(153,27,30,0.06);
-            border: 1px solid rgba(153,27,30,0.2);
-            border-radius: var(--radius-base);
-            padding: var(--space-12) var(--space-16);
-            font-size: var(--font-size-sm);
-            color: var(--color-primary);
-            margin: var(--space-16);
-        }
-
         /* Duration pill in card */
         .duration-pill {
             font-size: var(--font-size-xs);
@@ -893,173 +644,9 @@
             .detail-panel.show { display: flex; }
         }
 
-        /* ── Password Gate Modal ─────────────────────────────────────────── */
-        .auth-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(19, 52, 59, 0.72);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .auth-overlay.hidden { display: none; }
-        .auth-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-card-border);
-            border-radius: var(--radius-lg);
-            box-shadow: 0 24px 48px rgba(0,0,0,0.18);
-            padding: var(--space-32);
-            width: 100%;
-            max-width: 380px;
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-20);
-        }
-        .auth-logo {
-            display: flex;
-            align-items: center;
-            gap: var(--space-12);
-        }
-        .auth-logo-icon { font-size: 32px; }
-        .auth-title {
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--color-text);
-        }
-        .auth-subtitle {
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-            line-height: 1.5;
-        }
-        .auth-field { display: flex; flex-direction: column; gap: var(--space-6); }
-        .auth-label {
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-medium);
-            color: var(--color-text);
-        }
-        .auth-input {
-            font-family: var(--font-family-base);
-            font-size: var(--font-size-base);
-            padding: var(--space-10) var(--space-12);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            background: var(--color-background);
-            color: var(--color-text);
-            outline: none;
-            transition: border-color var(--duration-fast);
-            width: 100%;
-        }
-        .auth-input:focus { border-color: var(--color-primary); }
-        .auth-submit {
-            width: 100%;
-            padding: var(--space-12);
-            background: var(--color-primary);
-            color: var(--color-usc-gold);
-            border: none;
-            border-radius: var(--radius-base);
-            font-family: var(--font-family-base);
-            font-size: var(--font-size-base);
-            font-weight: var(--font-weight-semibold);
-            cursor: pointer;
-            transition: background var(--duration-fast) var(--ease-standard);
-        }
-        .auth-submit:hover { background: var(--color-primary-hover); }
-        .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-        .auth-error {
-            font-size: var(--font-size-sm);
-            color: var(--color-primary);
-            background: rgba(153,27,30,0.06);
-            border: 1px solid rgba(153,27,30,0.2);
-            border-radius: var(--radius-base);
-            padding: var(--space-8) var(--space-12);
-            display: none;
-        }
-        .auth-error.show { display: block; }
-
-        /* ── Variant views (general / post-partum) ──────────────────────── */
-        [hidden] { display: none !important; }
-        .view-options { display: flex; flex-direction: column; gap: var(--space-10); }
-        .view-option {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            text-align: left;
-            padding: var(--space-12) var(--space-16);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            background: var(--color-background);
-            font-family: var(--font-family-base);
-            cursor: pointer;
-            transition: border-color var(--duration-fast);
-        }
-        .view-option strong { font-size: var(--font-size-base); color: var(--color-text); }
-        .view-option span { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
-        .view-option:hover, .view-option:focus-visible { border-color: var(--color-primary); }
-        .view-switcher {
-            display: inline-flex;
-            gap: 2px;
-            padding: 3px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-full);
-            background: var(--color-secondary);
-        }
-        .view-switcher button {
-            border: none;
-            background: transparent;
-            padding: var(--space-6) var(--space-16);
-            border-radius: var(--radius-full);
-            font-family: var(--font-family-base);
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-medium);
-            color: var(--color-text-secondary);
-            cursor: pointer;
-        }
-        .view-switcher button[aria-pressed="true"] {
-            background: var(--color-primary);
-            color: var(--color-btn-primary-text);
-        }
     </style>
 </head>
 <body>
-
-<!-- ── Password Gate ────────────────────────────────────────────────────────── -->
-<div class="auth-overlay" id="authOverlay">
-    <div class="auth-card" id="passwordCard">
-        <div class="auth-logo">
-            <span class="auth-logo-icon">🔒</span>
-            <div>
-                <div class="auth-title">Provider Access</div>
-                <div class="auth-subtitle">HPV Health Assistant — Session Dashboard</div>
-            </div>
-        </div>
-        <p class="auth-subtitle">
-            This dashboard is restricted to authorized providers only.
-            Enter your access password to continue.
-        </p>
-        <div class="auth-field">
-            <label class="auth-label" for="authPassword">Password</label>
-            <input class="auth-input" type="password" id="authPassword"
-                   placeholder="Enter access password" autocomplete="current-password">
-        </div>
-        <div class="auth-error" id="authError"></div>
-        <button class="auth-submit" id="authSubmit">Unlock Dashboard</button>
-    </div>
-
-    <!-- Step 2 after the password: pick which conversations to review. -->
-    <div class="auth-card" id="viewChooserCard" hidden>
-        <div class="auth-logo">
-            <span class="auth-logo-icon">🗂️</span>
-            <div>
-                <div class="auth-title">Choose conversations</div>
-                <div class="auth-subtitle">You can switch at any time from the header.</div>
-            </div>
-        </div>
-        <div class="view-options" id="viewOptions"></div>
-    </div>
-</div>
 
 <!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <header class="header">
@@ -1074,6 +661,7 @@
         </div>
         <div style="display:flex;gap:12px;align-items:center;">
             <div class="view-switcher" id="viewSwitcher" role="group" aria-label="Conversation type" hidden></div>
+            <a class="btn" href="sources.html" data-dashboard-link title="Sources behind the assistant's answers">📚 Sources</a>
             <button class="btn" id="refreshBtn" title="Refresh sessions">↺ Refresh</button>
         </div>
     </div>
@@ -1225,175 +813,12 @@
 
 </div>
 
-<!-- Shared with index.html: BACKEND_DOMAIN (config.js) and the variant
-     registry — getVariant / variantFromUrl / localized (variants.js). -->
+<!-- Shared: BACKEND_DOMAIN (config.js), the variant registry (variants.js) and
+     the dashboard shell — password gate, view switcher, authFetch (dashboard.js). -->
 <script src="config.js"></script>
 <script src="variants.js"></script>
+<script src="dashboard.js"></script>
 <script>
-    // ── Auth ───────────────────────────────────────────────────────────────────
-    const TOKEN_KEY = 'sessions_dashboard_token';
-
-    /** Return the stored token if it exists and hasn't expired client-side.
-     *  Format '<expiry>.<variant,keys>.<signature>' — anything else (e.g. a token
-     *  from before variants existed) is discarded so the provider signs in again. */
-    function getStoredToken() {
-        const token = sessionStorage.getItem(TOKEN_KEY);
-        if (!token) return null;
-        const parts = token.split('.');
-        if (parts.length !== 3 || parseInt(parts[0], 10) * 1000 < Date.now()) {
-            sessionStorage.removeItem(TOKEN_KEY);
-            return null;
-        }
-        return token;
-    }
-
-    function storeToken(token) { sessionStorage.setItem(TOKEN_KEY, token); }
-    function clearToken()      { sessionStorage.removeItem(TOKEN_KEY); }
-
-    // ── Variant views (general / post-partum) ─────────────────────────────────
-    // Each variant's conversations are stored and listed separately. The token
-    // says which variants this provider may open (signed by the backend, which
-    // re-checks it on every call); the open view travels as ?variant= on every
-    // API request and in the page URL.
-    let activeVariantKey = null;
-
-    /** Variant keys granted by the stored token. */
-    function allowedVariantKeys() {
-        const token = getStoredToken();
-        return token ? token.split('.')[1].split(',').filter(key => getVariant(key)) : [];
-    }
-
-    /** Provider-facing (English) name of a variant. */
-    function variantLabel(key) { return localized(getVariant(key).label, 'en'); }
-
-    /** After authentication: open the view named in the URL if the token allows
-     *  it, go straight in when only one view is allowed, otherwise ask. */
-    function enterDashboard() {
-        const allowed = allowedVariantKeys();
-        const fromUrl = variantFromUrl();
-        renderViewSwitcher(allowed);
-        if (fromUrl && allowed.includes(fromUrl.key)) switchVariant(fromUrl.key, { keepSessionId: true });
-        else if (allowed.length === 1) switchVariant(allowed[0]);
-        else showViewChooser(allowed);
-    }
-
-    function renderViewSwitcher(allowed) {
-        const el = document.getElementById('viewSwitcher');
-        el.hidden = allowed.length < 2;
-        el.innerHTML = allowed.map(key =>
-            `<button type="button" data-variant="${key}" aria-pressed="false">${escHtml(variantLabel(key))}</button>`
-        ).join('');
-        el.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
-            if (btn.dataset.variant !== activeVariantKey) switchVariant(btn.dataset.variant);
-        }));
-    }
-
-    function showViewChooser(allowed) {
-        const options = document.getElementById('viewOptions');
-        options.innerHTML = allowed.map(key => `
-            <button type="button" class="view-option" data-variant="${key}">
-                <strong>${escHtml(variantLabel(key))}</strong>
-                <span>${escHtml(localized(getVariant(key).description, 'en'))}</span>
-            </button>`).join('');
-        options.querySelectorAll('button').forEach(btn =>
-            btn.addEventListener('click', () => switchVariant(btn.dataset.variant, { keepSessionId: true })));
-        passwordCard.hidden = true;
-        viewChooserCard.hidden = false;
-        authOverlay.classList.remove('hidden');
-    }
-
-    /** Show one variant's conversations. keepSessionId preserves a deep link
-     *  (?sessionId=…) on first entry (links from before variants existed carry
-     *  no ?variant= and open after picking General); switching views, or a
-     *  conversation already open (re-sign-in), drops it. */
-    function switchVariant(key, { keepSessionId = false } = {}) {
-        activeVariantKey = key;
-        hideAuthOverlay();
-        const url = new URL(window.location.href);
-        url.searchParams.set('variant', key);
-        history.replaceState(history.state, '', url);
-        document.querySelectorAll('#viewSwitcher button').forEach(btn =>
-            btn.setAttribute('aria-pressed', String(btn.dataset.variant === key)));
-        document.getElementById('headerSubtitle').textContent =
-            `HPV Health Assistant — Provider View · ${variantLabel(key)}`;
-        document.title = `Session Dashboard · ${variantLabel(key)}`;
-        if (!keepSessionId || activeFilename) resetDetailPanel();
-        loadSessions();
-    }
-
-    /** Authorised fetch to a backend path — adds the Bearer token and the open
-     *  variant (?variant=…), which the backend checks against the token. */
-    async function authFetch(path, opts = {}) {
-        const url = new URL(BACKEND_DOMAIN + path);
-        url.searchParams.set('variant', activeVariantKey);
-        const token = getStoredToken();
-        const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        const resp = await fetch(url, { ...opts, headers });
-        if (resp.status === 401) {
-            clearToken();
-            showAuthOverlay();
-            throw new Error('Session expired — please re-authenticate.');
-        }
-        return resp;
-    }
-
-    // ── Password Modal ─────────────────────────────────────────────────────────
-    const authOverlay     = document.getElementById('authOverlay');
-    const passwordCard    = document.getElementById('passwordCard');
-    const viewChooserCard = document.getElementById('viewChooserCard');
-    const authPassword    = document.getElementById('authPassword');
-    const authSubmit      = document.getElementById('authSubmit');
-    const authError       = document.getElementById('authError');
-
-    function showAuthOverlay() {
-        passwordCard.hidden = false;
-        viewChooserCard.hidden = true;
-        authOverlay.classList.remove('hidden');
-        authPassword.value = '';
-        authError.classList.remove('show');
-        authError.textContent = '';
-        setTimeout(() => authPassword.focus(), 50);
-    }
-    function hideAuthOverlay() { authOverlay.classList.add('hidden'); }
-
-    async function submitPassword() {
-        const pw = authPassword.value;
-        if (!pw) return;
-        authSubmit.disabled = true;
-        authSubmit.textContent = 'Verifying…';
-        authError.classList.remove('show');
-        try {
-            const resp = await fetch(BACKEND_DOMAIN + '/api/sessions/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: pw })
-            });
-            const data = await resp.json();
-            if (resp.ok) {
-                storeToken(data.token);
-                enterDashboard();           // pick a view, then load its sessions
-            } else {
-                const remaining = data.attempts_remaining != null
-                    ? ` (${data.attempts_remaining} attempt${data.attempts_remaining !== 1 ? 's' : ''} remaining)`
-                    : '';
-                authError.textContent = (data.error || 'Authentication failed.') + remaining;
-                authError.classList.add('show');
-                authPassword.value = '';
-                authPassword.focus();
-            }
-        } catch (e) {
-            authError.textContent = 'Could not reach server. Please try again.';
-            authError.classList.add('show');
-        } finally {
-            authSubmit.disabled = false;
-            authSubmit.textContent = 'Unlock Dashboard';
-        }
-    }
-
-    authSubmit.addEventListener('click', submitPassword);
-    authPassword.addEventListener('keydown', e => { if (e.key === 'Enter') submitPassword(); });
-
     // ── State ──────────────────────────────────────────────────────────────────
     let allSessions = [];
     let activeFilename = null;
@@ -1446,11 +871,6 @@
             && d.getMonth() === now.getMonth()
             && d.getFullYear() === now.getFullYear();
     }
-    function escHtml(str) {
-        return String(str ?? '')
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
     function renderMd(text) {
         if (typeof marked === 'undefined') return escHtml(text);
         return marked.parse(String(text ?? ''), { breaks: true, gfm: true });
@@ -1471,16 +891,6 @@
         return `background:${bg};color:${fg};border:1px solid ${fg}40;`;
     }
 
-    // Pretty-name a source URL for the reference header (filename or host).
-    function refLabel(source) {
-        if (!source) return 'Source';
-        try {
-            const u = new URL(source);
-            const last = u.pathname.split('/').filter(Boolean).pop();
-            return last || u.hostname.replace(/^www\./, '');
-        } catch { return source; }
-    }
-
     // Render retrieved RAG chunks for an event as a compact collapsible block.
     // Returns '' when the event has no references (older sessions), so the
     // events table is unchanged for sessions saved before this feature existed.
@@ -1489,7 +899,7 @@
         const items = refs.map((r, i) => `
             <div class="ref-chunk">
                 <a class="ref-src" href="${escHtml(r.source || '#')}" target="_blank" rel="noopener noreferrer">
-                    ${i + 1}. ${escHtml(refLabel(r.source))}
+                    ${i + 1}. ${escHtml(sourceLabel(r.source))}
                 </a>
                 <div class="ref-text">${escHtml(r.content || '')}</div>
             </div>`).join('');
@@ -2095,13 +1505,17 @@
     });
 
     // ── Boot ───────────────────────────────────────────────────────────────────
-    // Show the password gate immediately. If a valid token is already in
-    // sessionStorage, skip the password and go to the view (chooser).
-    if (getStoredToken()) {
-        enterDashboard();
-    } else {
-        showAuthOverlay();   // modal stays up until correct password is entered
-    }
+    // dashboard.js runs the password gate and the view chooser, then calls back
+    // with the variant to show.
+    initDashboard({
+        title: 'Session Dashboard',
+        onVariant: (key, { keepDeepLink }) => {
+            // Keep a ?sessionId= deep link on first entry only; switching views
+            // (or re-signing in with a conversation open) drops it.
+            if (!keepDeepLink || activeFilename) resetDetailPanel();
+            loadSessions();
+        }
+    });
 </script>
 </body>
 </html>
