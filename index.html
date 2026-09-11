@@ -2521,10 +2521,16 @@ body {
 
         // Fire-and-forget POST that survives page unload. Returns false if the
         // browser refused to queue the beacon (payload too large / unsupported).
+        //
+        // The body is JSON but sent as text/plain on purpose: the backend is on
+        // another origin, and an application/json beacon needs a CORS preflight.
+        // The preflight goes out, but the page is gone before the real POST can
+        // follow, so the session was never ended. text/plain needs no preflight;
+        // the backend parses the body as JSON whatever its content type.
         function beaconPost(path, bodyObj) {
             try {
                 if (!navigator.sendBeacon) return false;
-                const blob = new Blob([JSON.stringify(bodyObj)], { type: 'application/json' });
+                const blob = new Blob([JSON.stringify(bodyObj)], { type: 'text/plain;charset=UTF-8' });
                 return navigator.sendBeacon(BACKEND_DOMAIN + path, blob);
             } catch (e) {
                 return false;
