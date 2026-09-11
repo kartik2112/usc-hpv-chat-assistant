@@ -1334,6 +1334,50 @@ body {
 #globalLangToggle.is-visible {
   display: inline-block;
 }
+/* ── Variant chooser (disclaimer screen) ─────────────────────────────── */
+.variant-chooser {
+  margin: 4px 0 16px 0;
+}
+.variant-chooser-label {
+  margin: 0 0 8px 0;
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.variant-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.variant-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.variant-option span {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+.variant-option:hover,
+.variant-option:focus-visible {
+  border-color: var(--color-usc-cardinal);
+}
+.variant-option[aria-checked="true"] {
+  border-color: var(--color-usc-cardinal);
+  background: rgba(153, 0, 0, 0.06);
+}
+#disclaimer-accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
     </style>
 </head>
 <body>
@@ -1385,6 +1429,13 @@ body {
         <p style="margin: 8px 0 16px 0; color: #111827; font-size: 0.9rem;">
             By continuing, you agree to use this tool for teaching and learning purposes only.
         </p>
+        </div>
+        <!-- Variant chooser (general vs post-partum) — shown only when the URL has
+             no valid ?variant= (see variants.js). Kept outside #disclaimer-body,
+             whose HTML is replaced when the language changes. -->
+        <div id="variantChooser" class="variant-chooser hidden">
+            <p class="variant-chooser-label" id="variantChooserLabel">Choose a topic:</p>
+            <div class="variant-options" id="variantOptions" role="radiogroup" aria-labelledby="variantChooserLabel"></div>
         </div>
         <div style="display: flex; justify-content: flex-end;">
             <button id="disclaimer-accept-btn" type="button" style="
@@ -1613,117 +1664,10 @@ body {
 
     </div>
 
+    <!-- Shared with sessions.html: backend URL + variant registry / starter questions -->
+    <script src="config.js"></script>
+    <script src="variants.js"></script>
     <script>
-
-        // NEW: Initial Suggestions Data Structure with BILINGUAL support
-        const initialSuggestions = [
-            {
-                title: {
-                    en: "What is HPV?",
-                    es: "¿Qué es el VPH?"
-                },
-                action: {
-                    en: "What is HPV?",
-                    es: "¿Qué es el VPH?"
-                },
-                defaultAnswer: {
-                    en: "HPV (Human Papillomavirus) is a group of related viruses, some of which can cause warts or lead to certain cancers.",
-                    es: "El VPH (Virus del Papiloma Humano) es un grupo de virus relacionados, algunos de los cuales pueden causar verrugas o provocar ciertos cánceres."
-                },
-                followups: {
-                    en: [
-                        { title: "How common is HPV?", action: "How common is HPV?", defaultAnswer: "HPV infection is the most common sexually transmitted infection (STI) in the United States. Most people who have sex will get an HPV infection at some point in their lives." },
-                        { title: "How is it passed from one person to another?", action: "How is it passed from one person to another?", defaultAnswer: "There are about 40 types of HPV that typically infect the genitals. It is spread by skin-to-skin contact during vaginal, anal, or oral sex. You can get a HPV infection even if you do not have sexual intercourse." },
-                        { title: "What are symptoms of HPV infection?", action: "What are symptoms of HPV infection?", defaultAnswer: "HPV infection often has no signs or symptoms. People with HPV infection usually do not know they have it. This is one reason why HPV spreads easily. Some types of HPV can cause genital warts, which are growths on the outside or inside of the vagina or penis. When HPV infections last longer, they can turn into cancer." },
-                        { title: "Can HPV infections be treated?", action: "Can HPV infections be treated?", defaultAnswer: "HPV infections are usually slow. In most people, the immune system clears the body of HPV before it causes disease.  Warts can be removed with medication or surgery. " }
-                    ],
-                    es: [
-                        { title: "¿Qué tan común es el VPH?", action: "¿Qué tan común es el VPH?", defaultAnswer: "La infección por VPH es la infección de transmisión sexual más común en los Estados Unidos. La mayoría de las personas que tienen relaciones sexuales contraerán una infección por VPH en algún momento de sus vidas." },
-                        { title: "¿Cómo se transmite de una persona a otra?", action: "¿Cómo se transmite de una persona a otra?", defaultAnswer: "Hay alrededor de 40 tipos de VPH que típicamente infectan los genitales. Se transmite a través del contacto piel con piel durante las relaciones sexuales vaginales, anales u orales. Puede contraer una infección por VPH incluso sin tener relaciones sexuales." },
-                        { title: "¿Cuáles son los síntomas de la infección por VPH?", action: "¿Cuáles son los síntomas de la infección por VPH?", defaultAnswer: "La infección por VPH a menudo no tiene signos o síntomas. Las personas con infección por VPH generalmente no saben que la tienen. Algunos tipos de VPH pueden causar verrugas genitales. Cuando las infecciones por VPH persisten, pueden convertirse en cáncer." },
-                        { title: "¿Se pueden tratar las infecciones por VPH?", action: "¿Se pueden tratar las infecciones por VPH?", defaultAnswer: "Las infecciones por VPH generalmente son lentas. En la mayoría de las personas, el sistema inmunológico elimina el VPH del cuerpo antes de que cause enfermedad. Las verrugas se pueden extirpar con medicamentos o cirugía." }
-                    ]
-                }
-            },
-            {
-                title: {
-                    en: "How can I protect against HPV?",
-                    es: "¿Cómo puedo protegerme contra el VPH?"
-                },
-                action: {
-                    en: "How can I protect against HPV?",
-                    es: "¿Cómo puedo protegerme contra el VPH?"
-                },
-                defaultAnswer: {
-                    en: "HPV infection can be reduced by vaccination, practicing safe sex, and regular health screenings.",
-                    es: "La infección por VPH se puede reducir mediante la vacunación, practicando sexo seguro y exámenes de salud regulares."
-                },
-                followups: {
-                    en: [
-                        { title: "Is the HPV vaccine safe?", action: "Is the HPV vaccine safe?", defaultAnswer: "Yes, the HPV vaccine is a safe vaccine. Millions of people around the world have gotten the HPV vaccine without serious side effects. The vaccine does not contain live viruses, so it cannot cause an HPV infection." },
-                        { title: "Is the HPV vaccine effective?", action: "Is the HPV vaccine effective?", defaultAnswer: "Yes, the HPV vaccine is an effective way to protect yourself against HPV-related diseases. It is most effective when given before a person has sex but still works if you have already had sex. The vaccine can reduce the risk of HPV-related genital warts and cancer by up to 99 percent when all recommended shots have been given. It is one of the most effective vaccines you can get." },
-                        { title: "When should people get the HPV vaccine?", action: "When should people get the HPV vaccine?", defaultAnswer: "Vaccination works best when it is done before a person is sexually active and exposed to HPV. But vaccination can still reduce the risk of getting HPV for people who have already been sexually active. The ideal age for HPV vaccination of girls and boys is 11 or 12, but you can get it starting at age 9 and through age 46." },
-                        { title: "What are the side effects of the HPV vaccine?", action: "What are the side effects of the HPV vaccine?", defaultAnswer: "The most common side effect of the HPV vaccine is soreness and redness where the shot is given. There have been no reports of severe side effects or bad reactions to the vaccine." }
-                    ],
-                    es: [
-                        { title: "¿Es segura la vacuna contra el VPH?", action: "¿Es segura la vacuna contra el VPH?", defaultAnswer: "Sí, la vacuna contra el VPH es segura. Millones de personas en todo el mundo han recibido la vacuna sin efectos secundarios graves. La vacuna no contiene virus vivos, por lo que no puede causar una infección por VPH." },
-                        { title: "¿Es efectiva la vacuna contra el VPH?", action: "¿Es efectiva la vacuna contra el VPH?", defaultAnswer: "Sí, la vacuna contra el VPH es una forma efectiva de protegerse contra enfermedades relacionadas con el VPH. Es más efectiva cuando se administra antes de que una persona tenga relaciones sexuales, pero aún funciona si ya ha tenido relaciones sexuales. La vacuna puede reducir el riesgo de verrugas genitales relacionadas con el VPH y cáncer hasta en un 99 por ciento." },
-                        { title: "¿Cuándo deben las personas recibir la vacuna contra el VPH?", action: "¿Cuándo deben las personas recibir la vacuna contra el VPH?", defaultAnswer: "La vacunación funciona mejor cuando se realiza antes de que una persona sea sexualmente activa y esté expuesta al VPH. Pero la vacunación aún puede reducir el riesgo de contraer VPH para personas que ya han sido sexualmente activas. La edad ideal para la vacunación contra el VPH en niñas y niños es 11 o 12 años, pero se puede recibir a partir de los 9 años y hasta los 46 años." },
-                        { title: "¿Cuáles son los efectos secundarios de la vacuna contra el VPH?", action: "¿Cuáles son los efectos secundarios de la vacuna contra el VPH?", defaultAnswer: "El efecto secundario más común de la vacuna contra el VPH es dolor y enrojecimiento donde se administra la inyección. No ha habido reportes de efectos secundarios graves o reacciones adversas a la vacuna." }
-                    ]
-                }
-            },
-            {
-                title: {
-                    en: "Why should I be worried about HPV?",
-                    es: "¿Por qué debería preocuparme por el VPH?"
-                },
-                action: {
-                    en: "Why should I be worried about HPV?",
-                    es: "¿Por qué debería preocuparme por el VPH?"
-                },
-                defaultAnswer: {
-                    en: "HPV is a common sexually transmitted infection that can lead to serious health issues, including certain cancers.",
-                    es: "El VPH es una infección de transmisión sexual común que puede provocar problemas de salud graves, incluidos ciertos cánceres."
-                },
-                followups: {
-                    en: [
-                        { title: "When can HPV infection cause cancer?", action: "When can HPV infection cause cancer?", defaultAnswer: "The immune system fights most HPV infections and clears them from the body, usually within 2 years. But sometimes HPV infections can last longer. A longer infection with a “high-risk” HPV type can turn into cancer. It usually takes years for this to happen." },
-                        { title: "How long does cervical cancer take to develop?", action: "How long does cervical cancer take to develop?", defaultAnswer: "It can take 3 to 7 years for certain changes in the cells on the cervix to become cancer. The purpose of Pap Smears is to detect these changes while they are still easily treated." },
-                        { title: "Can I get the HPV vaccine if I've already had an infection or cancer?", action: "Can I get the HPV vaccine if I've already had an infection or cancer?", defaultAnswer: "Yes, the HPV vaccine may help prevent abnormal cells from coming back after treatment. If HPV infection leads to severe abnormal cells on the cervix, treatment also involves removing or destroying those cells." }
-                    ],
-                    es: [
-                        { title: "¿Cuándo puede la infección por VPH causar cáncer?", action: "¿Cuándo puede la infección por VPH causar cáncer?", defaultAnswer: "El sistema inmunológico combate la mayoría de las infecciones por VPH y las elimina del cuerpo, generalmente en 2 años. Pero a veces las infecciones por VPH pueden durar más tiempo. Una infección más prolongada con un tipo de VPH de \"alto riesgo\" puede convertirse en cáncer. Generalmente esto tarda años en suceder." },
-                        { title: "¿Cuánto tiempo tarda en desarrollarse el cáncer de cuello uterino?", action: "¿Cuánto tiempo tarda en desarrollarse el cáncer de cuello uterino?", defaultAnswer: "Pueden pasar 3 a 7 años para que ciertos cambios en las células del cuello uterino se conviertan en cáncer. El propósito de las pruebas de Papanicolaou es detectar estos cambios mientras aún se pueden tratar fácilmente." },
-                        { title: "¿Puedo recibir la vacuna contra el VPH si ya he tenido una infección o cáncer?", action: "¿Puedo recibir la vacuna contra el VPH si ya he tenido una infección o cáncer?", defaultAnswer: "Sí, la vacuna contra el VPH puede ayudar a prevenir que las células anormales vuelvan después del tratamiento. Si la infección por VPH causa células anormales graves en el cuello uterino, el tratamiento también implica extirpar o destruir esas células." }
-                    ]
-                }
-            },
-            {
-                title: {
-                    en: "Do I still need Pap smears if I had the HPV vaccine?",
-                    es: "¿Todavía necesito pruebas de Papanicolaou si me vacuné contra el VPH?"
-                },
-                action: {
-                    en: "Do I still need Pap smears if I had the HPV vaccine?",
-                    es: "¿Todavía necesito pruebas de Papanicolaou si me vacuné contra el VPH?"
-                },
-                defaultAnswer: {
-                    en: "Yes, even if you have had the HPV vaccine, regular Pap smears are still recommended to screen for cervical cancer.",
-                    es: "Sí, incluso si se ha vacunado contra el VPH, aún se recomiendan las pruebas de Papanicolaou regulares para detectar el cáncer de cuello uterino."
-                },
-                followups: {
-                    en: [
-                        { title: "How do we screen/check for cervical cancer?", action: "How do we screen/check for cervical cancer?", defaultAnswer: "Cervical cancer screening includes the Pap test, an HPV test, or both. Both tests use cells taken from the cervix. " },
-                        { title: "When should I be tested for HPV?", action: "When should I be tested for HPV?", defaultAnswer: "You should start having Pap smears at age 21, regardless of when you first start having sex. Usually HPV is tested starting age 30, unless your Pap smear is abnormal before that. How often you should have screening and which tests you should have depend on your age and health history." }
-                    ],
-                    es: [
-                        { title: "¿Cómo se detecta o examina el cáncer de cuello uterino?", action: "¿Cómo se detecta o examina el cáncer de cuello uterino?", defaultAnswer: "El cáncer de cuello uterino se detecta mediante pruebas de Papanicolaou, pruebas de VPH o ambas. Ambas pruebas utilizan células tomadas del cuello uterino." },
-                        { title: "¿Cuándo debo hacerme la prueba del VPH?", action: "¿Cuándo debo hacerme la prueba del VPH?", defaultAnswer: "Debe comenzar a hacerse pruebas de Papanicolaou a los 21 años, independientemente de cuándo comience a tener relaciones sexuales. Generalmente, las pruebas de VPH comienzan a los 30 años, a menos que su prueba de Papanicolaou sea anormal antes. La frecuencia depende de su edad e historial de salud." }
-                    ]
-                }
-            }
-        ];
 
         // Knowledge Base (kept for legacy support)
         const knowledgeBase = {
@@ -1809,6 +1753,7 @@ body {
                 subtitle: 'Get reliable information about HPV and cervical health',
                 placeholder: 'Type your question here...',
                 startOver: 'Back',
+                variantChooserLabel: 'Choose a topic:',
                 endConversation: 'End Conversation',
                 disclaimer: 'This information is for educational purposes only and does not replace professional medical advice. Please consult with a healthcare provider for personalized guidance.',
                 emptyTitle: 'Welcome! I can answer any questions you have about HPV!',
@@ -1935,6 +1880,7 @@ body {
                 subtitle: 'Obtenga información confiable sobre el VPH y la salud cervical',
                 placeholder: 'Escriba su pregunta aquí...',
                 startOver: 'Atrás',
+                variantChooserLabel: 'Elija un tema:',
                 endConversation: 'Finalizar Conversación',
                 disclaimer: 'Esta información es solo para fines educativos y no reemplaza el asesoramiento médico profesional. Consulte con un proveedor de atención médica para obtener orientación personalizada.',
                 disclaimerBtn: 'Entiendo y Acepto',
@@ -2074,6 +2020,12 @@ body {
 
         // Application State
         let currentLang = 'en';
+        // Active variant (general / post-partum) — see variants.js. A provider can
+        // fix it with ?variant=… in the link; otherwise it is picked on the
+        // disclaimer screen. The backend binds it to the session at
+        // /api/session/start, so it can only change between sessions.
+        const variantLockedByUrl = variantFromUrl() !== null;
+        let activeVariant = variantFromUrl();   // null until chosen
         // Everything behind the "Review summary" button is read by the PROVIDER, who
         // may not share the patient's language, so that view always renders in English.
         // The handoff prompt in front of it stays in the patient's chosen language.
@@ -2088,7 +2040,7 @@ body {
         let isSpeaking = false;           // Track if TTS is active
         let currentAudioContext = null;   // Current Audio element for TTS playback
         let _ttsAbortController = null;   // AbortController for in-flight TTS fetch
-        const BACKEND_DOMAIN = window.location.href.includes("sackend.isi.edu")? "https://sackend.isi.edu/chathpv/bot/backend": "https://usc-hpv-chat-assistant-backend.onrender.com";
+        // BACKEND_DOMAIN comes from config.js.
 
         // OpenAI Configuration with NEW SYSTEM PROMPT
         const OPENAI_CONFIG = {
@@ -2301,8 +2253,9 @@ body {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     // Send the pre-chat questionnaire so the backend stores it on the
-                    // session (persisted to disk + shown in the dashboard).
-                    body: JSON.stringify({ survey_responses: surveyResponses })
+                    // session (persisted to disk + shown in the dashboard), and the
+                    // variant, which decides the prompt and the save folder.
+                    body: JSON.stringify({ survey_responses: surveyResponses, variant: activeVariant.key })
                 });
                 if (resp.status === 404) {
                     // Server has no record of this session — treat as expired
@@ -2591,6 +2544,7 @@ body {
         }
 
         acceptBtn.addEventListener('click', async function () {
+            if (!activeVariant) return;   // the chooser must be answered first
             overlay.style.display = 'none';
             syncGlobalLangToggle(); // hide while neither overlay nor tour is active
             // Show starter question pills and launch the tour immediately —
@@ -2681,15 +2635,11 @@ body {
         // Update Language
         function updateLanguage() {
             const t = translations[currentLang];
-            headerTitle.textContent = t.title;
-            headerSubtitle.textContent = t.subtitle;
             userInput.placeholder = t.placeholder;
             endConversationBtn.textContent = t.endConversation;
             disclaimer.textContent = t.disclaimer;
             disclaimerBodyEl.innerHTML = currentLang === 'es' ? t.disclaimerBodyHTML : enDisclaimerBodyHTML;
             acceptBtn.textContent = currentLang === 'es' ? t.disclaimerBtn : 'I Understand and Agree';
-            emptyTitle.textContent = t.emptyTitle;
-            emptySubtitle.textContent = t.emptySubtitle;
             langToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
             globalLangToggle.textContent = currentLang === 'en' ? 'Español' : 'English';
             if (initialized) {
@@ -2706,8 +2656,8 @@ body {
             // apiKeyHelp.textContent = t.apiKeyHelp;
             // saveApiKeyBtn.textContent = t.saveKey;
             // closeSettingsBtn.textContent = t.close;
-            
-            renderStarterQuestions();
+
+            refreshVariantUi();
 
             if (recognition) {
                 recognition.lang = currentLang === 'en' ? 'en-US' : 'es-ES';
@@ -2718,6 +2668,53 @@ body {
 
             // If the feature tour is open, refresh its text in the new language
             refreshTourLanguage();
+        }
+
+        // translations[currentLang] with the active variant's overrides applied
+        // (e.g. the post-partum subtitle). See `ui` in variants.js.
+        function uiText() {
+            return { ...translations[currentLang], ...(activeVariant ? activeVariant.ui[currentLang] : {}) };
+        }
+
+        // Everything that depends on both the language and the variant.
+        function refreshVariantUi() {
+            const t = uiText();
+            headerTitle.textContent = t.title;
+            headerSubtitle.textContent = t.subtitle;
+            emptyTitle.textContent = t.emptyTitle;
+            emptySubtitle.textContent = t.emptySubtitle;
+            renderVariantChooser();
+            renderStarterQuestions();
+        }
+
+        // One option per variant on the disclaimer screen. "I Understand and Agree"
+        // stays disabled until a variant is picked; the pick is kept for the next
+        // patient on this device. Hidden when the link names a variant, and while a
+        // conversation is in progress (the header language toggle re-shows the
+        // disclaimer) — the variant may only change between conversations.
+        function renderVariantChooser() {
+            const locked = variantLockedByUrl || sessionId !== null || chatHistory.length > 0;
+            document.getElementById('variantChooser').classList.toggle('hidden', locked);
+            acceptBtn.disabled = !activeVariant;
+            if (locked) return;
+
+            document.getElementById('variantChooserLabel').textContent = translations[currentLang].variantChooserLabel;
+            const options = document.getElementById('variantOptions');
+            options.innerHTML = '';
+            Object.values(HPV_VARIANTS).forEach(variant => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'variant-option';
+                btn.setAttribute('role', 'radio');
+                btn.setAttribute('aria-checked', String(variant === activeVariant));
+                btn.innerHTML = `<strong>${escapeHtml(localized(variant.label, currentLang))}</strong>` +
+                                `<span>${escapeHtml(localized(variant.description, currentLang))}</span>`;
+                btn.addEventListener('click', () => {
+                    activeVariant = variant;
+                    refreshVariantUi();
+                });
+                options.appendChild(btn);
+            });
         }
 
         function updateModalTranslations() {
@@ -2998,8 +2995,7 @@ body {
             // renderStarterQuestions() here because it short-circuits when a
             // conversation exists (chatHistory.length > 0), which would otherwise
             // leave the suggestions area empty.
-            const starterLabel = currentLang === 'en' ? 'Try asking:' : 'Intenta preguntar:';
-            showSuggestionPills(initialSuggestions, starterLabel, (suggestion) => handleSuggestionClick(suggestion));
+            showStarterPills();
 
             // Hide the back button now that we're back at the starter questions
             hideBackButton();
@@ -3075,8 +3071,14 @@ body {
                 // Chat is active — don't replace follow-up pills with starters
                 return;
             }
+            showStarterPills();
+        }
+
+        // The active variant's starter questions (none until a variant is chosen).
+        function showStarterPills() {
             const starterLabel = currentLang === 'en' ? 'Try asking:' : 'Intenta preguntar:';
-            showSuggestionPills(initialSuggestions, starterLabel, (suggestion) => handleSuggestionClick(suggestion));
+            const starters = activeVariant ? activeVariant.starterQuestions : [];
+            showSuggestionPills(starters, starterLabel, (suggestion) => handleSuggestionClick(suggestion));
         }
 
         // Generic function to populate the suggestions pill row.
@@ -3546,7 +3548,11 @@ body {
                         max_tokens: OPENAI_CONFIG.maxTokens,
                         temperature: OPENAI_CONFIG.temperature,
                         language: currentLang,   // backend uses this to select the right spaCy PHI model
-                        survey_responses: surveyResponses   // injected into the system prompt server-side
+                        survey_responses: surveyResponses,   // injected into the system prompt server-side
+                        // Selects the audience prompt. The backend prefers the variant
+                        // bound to session_id and only falls back to `variant`.
+                        session_id: sessionId,
+                        variant: activeVariant.key
                     })
                 });
 
@@ -3847,6 +3853,7 @@ body {
         // initSession() is deliberately NOT called here — it is called inside the
         // acceptBtn click handler after the patient clicks "I Understand and Agree".
         function showDisclaimer() {
+            renderVariantChooser();   // offered only between conversations
             overlay.style.display = 'flex';
             syncGlobalLangToggle();
         }
