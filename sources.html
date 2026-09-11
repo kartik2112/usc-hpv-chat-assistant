@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HPV Health Assistant — RAG Sources</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="dashboard.css">
+    <style>
+        /* Page layout — the shared shell (header, buttons, stats, auth gate,
+           view switcher) comes from dashboard.css. */
+        .page {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-24);
+        }
+        .page-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-16); }
+
+        .info-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-16);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-24);
+        }
+        .info-item { display: flex; flex-direction: column; gap: 2px; }
+        .info-label {
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--color-text-secondary);
+        }
+        .info-value { font-size: var(--font-size-base); color: var(--color-text); }
+        .info-value.mono { font-family: var(--font-family-mono); }
+
+        .notice {
+            border-radius: var(--radius-base);
+            padding: var(--space-12) var(--space-16);
+            font-size: var(--font-size-sm);
+            border: 1px solid var(--color-border);
+            background: var(--color-secondary);
+            color: var(--color-text);
+        }
+        .notice.warn {
+            background: rgba(153,27,30,0.06);
+            border-color: rgba(153,27,30,0.2);
+            color: var(--color-primary);
+        }
+
+        .source-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            font-size: var(--font-size-sm);
+        }
+        .source-table th {
+            text-align: left;
+            padding: var(--space-10) var(--space-12);
+            background: var(--color-secondary);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+        .source-table td {
+            padding: var(--space-12);
+            border-top: 1px solid var(--color-card-border);
+            vertical-align: top;
+        }
+        .source-title { font-weight: var(--font-weight-bold); color: var(--color-text); }
+        .source-url {
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            word-break: break-all;
+        }
+        .source-url:hover { color: var(--color-primary); }
+        .kind-chip {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+            background: var(--color-secondary);
+            color: var(--color-text-secondary);
+        }
+        .status-chip {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+            white-space: nowrap;
+        }
+        .status-indexed { background: rgba(45,106,79,0.12); color: #2d6a4f; }
+        .status-failed  { background: rgba(153,27,30,0.10); color: var(--color-primary); }
+        .status-pending { background: rgba(255,204,0,0.22); color: #8a6c00; }
+        .status-muted   { background: var(--color-secondary); color: var(--color-text-secondary); }
+        .status-note {
+            display: block;
+            margin-top: 4px;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+        .chunks { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="header">
+    <div class="header-content">
+        <div class="header-left">
+            <span class="header-icon">📚</span>
+            <div>
+                <h1 class="header-title">RAG Sources</h1>
+                <p class="header-subtitle" id="headerSubtitle">HPV Health Assistant — Provider View</p>
+            </div>
+            <span class="header-badge">Provider Only</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;">
+            <div class="view-switcher" id="viewSwitcher" role="group" aria-label="Conversation type" hidden></div>
+            <a class="btn" href="sessions.html" data-dashboard-link title="Saved conversations">📋 Sessions</a>
+            <button class="btn" id="refreshBtn" title="Reload sources">↺ Refresh</button>
+        </div>
+    </div>
+</header>
+
+<!-- ── Stats Bar ────────────────────────────────────────────────────────────── -->
+<div class="stats-bar">
+    <div class="stats-inner">
+        <div class="stat">
+            <span class="stat-value" id="statSources">—</span>
+            <span class="stat-label">Sources</span>
+        </div>
+        <div class="stats-divider"></div>
+        <div class="stat">
+            <span class="stat-value" id="statChunks">—</span>
+            <span class="stat-label">Indexed chunks</span>
+        </div>
+        <div class="stats-divider"></div>
+        <div class="stat">
+            <span class="stat-value" id="statIssues">—</span>
+            <span class="stat-label">Need attention</span>
+        </div>
+    </div>
+</div>
+
+<!-- ── Page ─────────────────────────────────────────────────────────────────── -->
+<div class="page">
+    <div class="page-inner" id="pageInner">
+        <div class="loading"><div class="spinner"></div><span>Loading sources…</span></div>
+    </div>
+</div>
+
+<!-- Shared: BACKEND_DOMAIN (config.js), the variant registry (variants.js) and
+     the dashboard shell — password gate, view switcher, authFetch (dashboard.js). -->
+<script src="config.js"></script>
+<script src="variants.js"></script>
+<script src="dashboard.js"></script>
+<script>
+    // This page is read-only: it shows which web pages and PDFs are indexed in
+    // the open variant's Chroma collection, and what the last index build did
+    // with each. Sources are curated in rag_sources.json on the server; edits
+    // waiting for the nightly refresh show up here as "pending".
+
+    // How each backend status is presented: [chip class, label, explanation].
+    const STATUS_TEXT = {
+        unchanged:       ['status-indexed', 'Indexed',    ''],
+        added:           ['status-indexed', 'Added',      'First indexed in the last refresh.'],
+        updated:         ['status-indexed', 'Updated',    'Content changed — re-indexed in the last refresh.'],
+        failed:          ['status-failed',  'Failed',     'Could not be fetched in the last refresh.'],
+        pending:         ['status-pending', 'Pending',    'Added to the sources file; indexed at the next refresh.'],
+        pending_removal: ['status-muted',   'To remove',  'No longer in the sources file; dropped at the next refresh.'],
+    };
+
+    function fmtDateTime(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return isNaN(d) ? iso : d.toLocaleString(undefined, {
+            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    }
+
+    /** 'pdf' / 'web' as reported by the last build, else guessed from the URL. */
+    function sourceKind(source) {
+        return source.kind || (/\.pdf($|\?)/i.test(source.url) ? 'pdf' : 'web');
+    }
+
+    async function loadSources() {
+        const container = document.getElementById('pageInner');
+        container.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading sources…</span></div>`;
+        try {
+            const resp = await authFetch('/api/rag/sources');
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            render(await resp.json());
+        } catch (e) {
+            container.innerHTML = `<div class="error-banner">⚠️ Could not load sources: ${escHtml(e.message)}</div>`;
+        }
+    }
+
+    function render(data) {
+        const sources = data.sources || [];
+        const chunks = sources.reduce((total, s) => total + (s.chunks || 0), 0);
+        const issues = sources.filter(s => s.status !== 'unchanged' && s.status !== 'added' && s.status !== 'updated').length;
+        document.getElementById('statSources').textContent = sources.length;
+        document.getElementById('statChunks').textContent = chunks;
+        document.getElementById('statIssues').textContent = issues;
+
+        const notices = [];
+        if (data.config_error) {
+            notices.push(`<div class="notice warn">⚠️ The sources file on the server could not be read, so this shows the
+                live index only. Fix it before the next refresh: ${escHtml(data.config_error)}</div>`);
+        }
+        if (data.chroma_pending) {
+            notices.push(`<div class="notice warn">⚠️ The sources file points at a different collection
+                (<strong>${escHtml(data.chroma_pending.collection)}</strong> in
+                ${escHtml(data.chroma_pending.database)}). It takes effect at the next refresh.</div>`);
+        }
+        if ((data.removed || []).length) {
+            notices.push(`<div class="notice">🧹 The last refresh removed ${data.removed.length}
+                source${data.removed.length > 1 ? 's' : ''} from this collection:
+                ${data.removed.map(u => escHtml(sourceLabel(u))).join(', ')}</div>`);
+        }
+
+        const rows = sources.map(source => {
+            const [chipClass, label, note] = STATUS_TEXT[source.status] || ['status-muted', source.status, ''];
+            const kind = sourceKind(source);
+            return `
+                <tr>
+                    <td><span class="kind-chip">${kind === 'pdf' ? '📄 PDF' : '🌐 Web'}</span></td>
+                    <td>
+                        ${source.title ? `<div class="source-title">${escHtml(source.title)}</div>` : ''}
+                        <a class="source-url" href="${escHtml(source.url)}" target="_blank" rel="noopener noreferrer"
+                           title="Open in a new tab">${escHtml(source.url)} ↗</a>
+                    </td>
+                    <td>
+                        <span class="status-chip ${chipClass}">${escHtml(label)}</span>
+                        ${note ? `<span class="status-note">${escHtml(note)}</span>` : ''}
+                    </td>
+                    <td class="chunks">${source.chunks || 0}</td>
+                </tr>`;
+        }).join('');
+
+        document.getElementById('pageInner').innerHTML = `
+            <div class="info-card">
+                <div class="info-item">
+                    <span class="info-label">Collection</span>
+                    <span class="info-value mono">${escHtml(data.chroma.collection)}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Database</span>
+                    <span class="info-value mono">${escHtml(data.chroma.database)}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last indexed</span>
+                    <span class="info-value">${escHtml(fmtDateTime(data.built_at))}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Answers for</span>
+                    <span class="info-value">${escHtml(variantLabel(data.variant))}</span>
+                </div>
+            </div>
+            ${notices.join('')}
+            ${sources.length ? `
+                <table class="source-table">
+                    <thead>
+                        <tr>
+                            <th style="width:90px;">Type</th>
+                            <th>Source</th>
+                            <th style="width:210px;">Status</th>
+                            <th style="width:90px;">Chunks</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`
+              : `<div class="notice">No sources are configured for this variant yet.</div>`}
+            <div class="notice">Sources are curated on the server in <code>rag_sources.json</code> and re-crawled
+                nightly (1&nbsp;AM). This page is read-only.</div>`;
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadSources);
+
+    // dashboard.js runs the password gate and the view chooser, then tells us
+    // which variant's collection to describe.
+    initDashboard({ title: 'RAG Sources', onVariant: () => loadSources() });
+</script>
+</body>
+</html>
