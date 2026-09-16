@@ -2692,6 +2692,18 @@ body {
         // patient on this device. Hidden when the link names a variant, and while a
         // conversation is in progress (the header language toggle re-shows the
         // disclaimer) — the variant may only change between conversations.
+        // Reflect the picked variant in the address bar (?variant=<key>) so the
+        // link can be copied / bookmarked / reloaded and land on the same variant.
+        // replaceState keeps the Back button pointing at wherever the patient came
+        // from, and every other query param (survey answers, ?backend=…) is kept.
+        function syncVariantToUrl() {
+            if (!activeVariant) return;
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('variant') === activeVariant.key) return;
+            url.searchParams.set('variant', activeVariant.key);
+            window.history.replaceState(window.history.state, '', url);
+        }
+
         function renderVariantChooser() {
             const locked = variantLockedByUrl || sessionId !== null || chatHistory.length > 0;
             document.getElementById('variantChooser').classList.toggle('hidden', locked);
@@ -2711,6 +2723,7 @@ body {
                                 `<span>${escapeHtml(localized(variant.description, currentLang))}</span>`;
                 btn.addEventListener('click', () => {
                     activeVariant = variant;
+                    syncVariantToUrl();
                     refreshVariantUi();
                 });
                 options.appendChild(btn);
