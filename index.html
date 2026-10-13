@@ -1209,6 +1209,60 @@ body {
   .rating-group { flex-wrap: wrap; }
 }
 
+/* ===== Summary modal → PDF =====
+   exportSummaryPdf() puts .print-summary on <html> and calls window.print().
+   Scoped to that class so printing the chat itself (Ctrl+P) is unaffected. */
+.print-only { display: none; }
+
+@media print {
+  .print-summary body > *:not(.app-container),
+  .print-summary .app-container > *:not(#summaryModal),
+  .print-summary #summaryModal .modal-actions,
+  .print-summary .transcript-toggle-caret,
+  .print-summary .transcript-count { display: none !important; }
+
+  html.print-summary,
+  .print-summary body,
+  .print-summary .app-container {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: #fff;
+  }
+
+  .print-summary #summaryModal {
+    position: static;
+    display: block;
+    background: none;
+    opacity: 1;
+  }
+
+  .print-summary .modal-content--wide {
+    display: block;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .print-summary .summary-scroll { overflow: visible; padding: 0; }
+
+  /* Always print the whole conversation, even if it is collapsed on screen —
+     hence the !important, to beat .hidden. */
+  .print-summary .transcript-body {
+    display: block !important;
+    max-height: none;
+    overflow: visible;
+  }
+  .print-summary .transcript-card { overflow: visible; }
+  .print-summary .transcript-turn { break-inside: avoid; }
+  .print-summary .print-only { display: block; }
+}
+
 /* ===== Feature Tour (onboarding coachmarks) ===== */
 /* Blur everything in the app while the tour is active */
 .tour-active-blur {
@@ -1612,6 +1666,8 @@ body {
             <p class="modal-body modal-body--tight" id="summaryModalIntro">
             Your provider can review a summary of your conversation on this screen.
             </p>
+            <!-- Only appears in the exported PDF; filled in by exportSummaryPdf(). -->
+            <p class="modal-body modal-body--tight print-only" id="summaryPrintDate"></p>
 
             <!-- State 1 (patient): the summary is already loaded below, just not
                  shown. It is written for the provider, so the patient is asked to
@@ -1657,6 +1713,8 @@ body {
             </div>
 
             <div class="modal-actions">
+            <!-- Provider-only: hidden until the summary is revealed. -->
+            <button class="btn hidden" id="exportSummaryBtn" type="button">Print / Save as PDF</button>
             <button class="btn btn-primary" id="closeSummaryBtn">Done</button>
             </div>
         </div>
@@ -1834,6 +1892,7 @@ body {
                 summaryModalTitle: 'Patient visit summary',
                 summaryModalIntro: 'What they asked during this conversation, and suggested follow-up.',
                 closeSummaryBtn: 'Done',
+                exportSummaryBtn: 'Print / Save as PDF',
                 noConversationToExport: 'No conversation to export yet.',
                 phiWarning: 'Reminder: It looks like you may be entering personal information ({types}). For your privacy, please avoid sharing personal details.',
                 phiBackendWarning: 'Reminder: Your message may contain personal information. For your privacy, please avoid sharing personal details.',
@@ -1975,6 +2034,7 @@ body {
                 summaryModalTitle: 'Resumen de la visita del paciente',
                 summaryModalIntro: 'Lo que el paciente preguntó durante esta conversación y el seguimiento sugerido.',
                 closeSummaryBtn: 'Listo',
+                exportSummaryBtn: 'Imprimir / Guardar como PDF',
                 noConversationToExport: 'Aún no hay conversación para exportar.',
                 phiWarning: 'Recordatorio: Parece que está ingresando información personal ({types}). Para su privacidad, evite compartir datos personales.',
                 phiBackendWarning: 'Recordatorio: Su mensaje puede contener información personal. Para su privacidad, evite compartir datos personales.',
@@ -2152,6 +2212,8 @@ body {
         const summaryModalTitle     = document.getElementById('summaryModalTitle');
         const summaryModalIntro     = document.getElementById('summaryModalIntro');
         const closeSummaryBtn       = document.getElementById('closeSummaryBtn');
+        const exportSummaryBtn      = document.getElementById('exportSummaryBtn');
+        const summaryPrintDate      = document.getElementById('summaryPrintDate');
         const summaryHandoff        = document.getElementById('summaryHandoff');
         const revealSummaryBtn      = document.getElementById('revealSummaryBtn');
         const summaryCardTitle      = document.getElementById('summaryCardTitle');
@@ -3305,6 +3367,9 @@ body {
             revealSummaryBtn.textContent  = t.revealSummaryBtn;
             // Shared by both states — the only footer button, so it follows the state.
             closeSummaryBtn.textContent   = summaryRevealed ? providerText.closeSummaryBtn : t.closeSummaryBtn;
+            // Provider-only action, so it stays out of the patient's handoff screen.
+            exportSummaryBtn.textContent  = providerText.exportSummaryBtn;
+            exportSummaryBtn.classList.toggle('hidden', !summaryRevealed);
         }
 
         // Reveals the provider view. A deliberate handoff step, not access control —
@@ -3324,6 +3389,9 @@ body {
             summaryLoading.classList.toggle('hidden', state !== 'loading');
             summaryContent.classList.toggle('hidden', state !== 'ready');
             summaryErrorEl.classList.toggle('hidden', state !== 'error');
+            // Never export the spinner. The error state stays exportable — the
+            // transcript is still worth keeping.
+            exportSummaryBtn.disabled = state === 'loading';
         }
 
         // The summary arrives as "• line\n• line" plain text. Normalise the bullet
@@ -3351,6 +3419,36 @@ body {
             syncGlobalLangToggle();   // restore whatever the underlying UI state wants
             await startOver();
             showDisclaimer(); // Next patient must accept disclaimer before a new session begins
+        }
+
+        // "Print / Save as PDF" — prints the summary modal through the browser's own
+        // print dialog, which is where the PDF is saved from. The .print-summary
+        // rules in the stylesheet strip the page down to the modal and expand the
+        // transcript; everything is put back on afterprint.
+        function exportSummaryPdf() {
+            addEvent('Button Click', 'Summary Exported as PDF');
+
+            const now = new Date();
+            summaryPrintDate.textContent = now.toLocaleDateString('en-US',
+                { year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Browsers offer the page title as the PDF's default filename.
+            const pageTitle = document.title;
+            document.title = 'HPV-visit-summary-' + now.toLocaleDateString('en-CA');   // YYYY-MM-DD
+            // The transcript always prints in full, so "Show full conversation"
+            // would be the wrong heading on paper.
+            transcriptToggleText.textContent = providerText.transcriptTitle;
+            document.documentElement.classList.add('print-summary');
+
+            // Restored on afterprint rather than straight after print(): on iOS
+            // print() returns before the dialog has even opened.
+            window.addEventListener('afterprint', () => {
+                document.documentElement.classList.remove('print-summary');
+                document.title = pageTitle;
+                updateTranscriptToggleLabel();
+            }, { once: true });
+
+            window.print();
         }
 
 
@@ -3986,6 +4084,7 @@ body {
 
         // Summary Modal Listeners (step 2)
         closeSummaryBtn.addEventListener('click', closeSummaryModal);
+        exportSummaryBtn.addEventListener('click', exportSummaryPdf);
         revealSummaryBtn.addEventListener('click', revealSummaryForProvider);
         transcriptToggle.addEventListener('click', toggleTranscript);
 
