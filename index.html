@@ -1432,9 +1432,39 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* ── Landing splash (shown once on page load, before the disclaimer) ──── */
+#landing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10020; /* above disclaimer (9999) and floating lang toggle (10011) */
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+}
+#landing-overlay img {
+  max-width: 90vw;
+  max-height: 85vh; /* most of the screen, not full screen */
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+.landing-hint {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+}
     </style>
 </head>
 <body>
+    <!-- Landing splash — bilingual, so no language toggle; click to reach the disclaimer -->
+    <div id="landing-overlay" role="button" tabindex="0"
+         aria-label="Ask me about HPV — click to continue / Pregúntame sobre el VPH — haga clic para continuar">
+        <img src="landing.png" alt="Ask me about HPV! / ¡Pregúntame sobre el VPH! — Doctor-approved information">
+        <p class="landing-hint">Click anywhere to continue · Haga clic para continuar</p>
+    </div>
     <!-- DISCLAIMER OVERLAY START -->
     <div id="disclaimer-overlay" style="
         position: fixed;
@@ -4402,7 +4432,14 @@ body {
                 });
         }
         function init() {
-            acceptBtn.focus();
+            // Landing splash sits above the disclaimer on load only (not on Start Over).
+            const landing = document.getElementById('landing-overlay');
+            const dismissLanding = () => { landing.remove(); acceptBtn.focus(); };
+            landing.addEventListener('click', dismissLanding);
+            landing.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismissLanding(); }
+            });
+            landing.focus();
             initSpeechRecognition();
             updateLanguage();
             updateModalTranslations();
