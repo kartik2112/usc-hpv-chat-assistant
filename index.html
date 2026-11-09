@@ -2188,6 +2188,7 @@ body {
 
         // DOM Elements
         const overlay = document.getElementById('disclaimer-overlay');
+        const landing = document.getElementById('landing-overlay');
         const acceptBtn = document.getElementById('disclaimer-accept-btn');
         const disclaimerBodyEl = document.getElementById('disclaimer-body');
         const enDisclaimerBodyHTML = disclaimerBodyEl.innerHTML;
@@ -3404,14 +3405,57 @@ body {
 
         // Reveals the provider view. A deliberate handoff step, not access control —
         // the content is already on the page, so this is a prompt to pass the device
-        // over rather than a barrier.
-        function revealSummaryForProvider() {
+        // over rather than a barrier. The view moves to a new window so this one can
+        // reset straight away for the next patient; if the pop-up is blocked it stays
+        // in this modal as before.
+        async function revealSummaryForProvider() {
+            const win = window.open('', '_blank');   // must run inside the click to dodge pop-up blockers
             summaryRevealed = true;
             summaryHandoff.classList.add('hidden');
             summaryScroll.classList.remove('hidden');
             summaryScroll.scrollTop = 0;
             applySummaryModalText();
-            addEvent('Button Click', 'Summary Revealed to Provider');
+            addEvent('Button Click', 'Summary Revealed to Provider');   // while the session is still live
+            if (!win) return;
+            await requestSessionSummary();   // memoised; showSummaryModal()'s fill runs first
+            writeSummaryWindow(win);
+            closeSummaryModal();             // startOver() + showDisclaimer() → landing page
+        }
+
+        // Writes the revealed summary modal into `win` as a standalone page. It reuses
+        // this page's stylesheet and the .print-summary print rules, so it looks and
+        // prints exactly like the in-page modal; the <title> is the PDF's default name.
+        function writeSummaryWindow(win) {
+            const now = new Date();
+            summaryPrintDate.textContent = now.toLocaleDateString('en-US',
+                { year: 'numeric', month: 'long', day: 'numeric' });
+            const d = win.document;
+            d.open();
+            d.write('<!DOCTYPE html><html lang="en" class="print-summary"><head>' +
+                '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                `<title>HPV-visit-summary-${now.toLocaleDateString('en-CA')}</title>` +
+                document.querySelector('style').outerHTML +
+                '</head><body><div class="app-container">' +
+                `<div id="summaryModal" class="modal-overlay show">${summaryModal.innerHTML}</div>` +
+                '</div></body></html>');
+            d.close();
+
+            d.getElementById('exportSummaryBtn').addEventListener('click', () => win.print());
+            d.getElementById('closeSummaryBtn').addEventListener('click', () => win.close());
+            const toggle = d.getElementById('transcriptToggle');
+            const label = d.getElementById('transcriptToggleText');
+            const syncLabel = () => {
+                label.textContent = toggle.getAttribute('aria-expanded') === 'true'
+                    ? providerText.transcriptHide : providerText.transcriptShow;
+            };
+            toggle.addEventListener('click', () => {
+                const expanded = !d.getElementById('transcriptBody').classList.toggle('hidden');
+                toggle.setAttribute('aria-expanded', String(expanded));
+                syncLabel();
+            });
+            // The transcript always prints in full, so "Show/Hide …" is the wrong heading on paper.
+            win.addEventListener('beforeprint', () => { label.textContent = providerText.transcriptTitle; });
+            win.addEventListener('afterprint', syncLabel);
         }
 
         // state: 'loading' | 'ready' | 'error'
@@ -3997,6 +4041,8 @@ body {
             renderVariantChooser();   // offered only between conversations
             overlay.style.display = 'flex';
             syncGlobalLangToggle();
+            landing.classList.remove('hidden');   // every new conversation starts at the landing page
+            landing.focus();
         }
 
         // Show the floating language toggle only while the in-header toggle is
@@ -4432,9 +4478,8 @@ body {
                 });
         }
         function init() {
-            // Landing splash sits above the disclaimer on load only (not on Start Over).
-            const landing = document.getElementById('landing-overlay');
-            const dismissLanding = () => { landing.remove(); acceptBtn.focus(); };
+            // Landing splash sits above the disclaimer; showDisclaimer() brings it back on every reset.
+            const dismissLanding = () => { landing.classList.add('hidden'); acceptBtn.focus(); };
             landing.addEventListener('click', dismissLanding);
             landing.addEventListener('keydown', e => {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismissLanding(); }
