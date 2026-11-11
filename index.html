@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HPV Health Assistant</title>
     <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
     <style>
         /* Design System */
@@ -1215,7 +1216,8 @@ body {
 .print-only { display: none; }
 
 @media print {
-  .print-summary body > *:not(.app-container),
+  /* html2pdf/html2canvas render via containers appended to <body>; see downloadSummaryPdf(). */
+  .print-summary body > *:not(.app-container):not(.html2pdf__overlay):not(.html2canvas-container),
   .print-summary .app-container > *:not(#summaryModal),
   .print-summary #summaryModal .modal-actions,
   .print-summary .transcript-toggle-caret,
@@ -1437,24 +1439,40 @@ body {
   position: fixed;
   inset: 0;
   z-index: 10020; /* above disclaimer (9999) and floating lang toggle (10011) */
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  background: #8a0113; /* landing.png's own red, so any letterboxing blends in */
+  border: 12px solid var(--color-usc-gold);
+  box-sizing: border-box;
   cursor: pointer;
 }
 #landing-overlay img {
-  max-width: 90vw;
-  max-height: 85vh; /* most of the screen, not full screen */
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* full screen without cropping the bubble text */
 }
+/* Puffy, outlined "press start" text over the image's empty bottom band */
 .landing-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5%;
   margin: 0;
-  color: #ffffff;
-  font-size: 0.95rem;
+  text-align: center;
+  font-family: 'Luckiest Guy', var(--font-family-base);
+  font-size: clamp(1.25rem, 3vw, 2.5rem);
+  letter-spacing: 0.04em;
+  color: var(--color-usc-gold);
+  -webkit-text-stroke: 2px #5a000c;
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 #5a000c, 0 6px 12px rgba(0, 0, 0, 0.35);
+  animation: landing-pulse 1.6s ease-in-out infinite;
+}
+@keyframes landing-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-hint { animation: none; }
 }
     </style>
 </head>
@@ -1923,6 +1941,7 @@ body {
                 summaryModalIntro: 'What they asked during this conversation, and suggested follow-up.',
                 closeSummaryBtn: 'Done',
                 exportSummaryBtn: 'Print / Save as PDF',
+                downloadSummaryBtn: 'Download PDF',
                 noConversationToExport: 'No conversation to export yet.',
                 phiWarning: 'Reminder: It looks like you may be entering personal information ({types}). For your privacy, please avoid sharing personal details.',
                 phiBackendWarning: 'Reminder: Your message may contain personal information. For your privacy, please avoid sharing personal details.',
@@ -2065,6 +2084,7 @@ body {
                 summaryModalIntro: 'Lo que el paciente preguntó durante esta conversación y el seguimiento sugerido.',
                 closeSummaryBtn: 'Listo',
                 exportSummaryBtn: 'Imprimir / Guardar como PDF',
+                downloadSummaryBtn: 'Descargar PDF',
                 noConversationToExport: 'Aún no hay conversación para exportar.',
                 phiWarning: 'Recordatorio: Parece que está ingresando información personal ({types}). Para su privacidad, evite compartir datos personales.',
                 phiBackendWarning: 'Recordatorio: Su mensaje puede contener información personal. Para su privacidad, evite compartir datos personales.',
@@ -3440,10 +3460,16 @@ body {
                 '</div></body></html>');
             d.close();
 
-            d.getElementById('exportSummaryBtn').addEventListener('click', () => win.print());
+            // Loaded async (not via d.write) so a slow CDN never blocks the summary from rendering.
+            const pdfLib = d.createElement('script');
+            pdfLib.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            d.head.appendChild(pdfLib);
             d.getElementById('closeSummaryBtn').addEventListener('click', () => win.close());
             const toggle = d.getElementById('transcriptToggle');
             const label = d.getElementById('transcriptToggleText');
+            const exportBtn = d.getElementById('exportSummaryBtn');
+            exportBtn.textContent = providerText.downloadSummaryBtn;
+            exportBtn.addEventListener('click', () => downloadSummaryPdf(win, exportBtn, label));
             const syncLabel = () => {
                 label.textContent = toggle.getAttribute('aria-expanded') === 'true'
                     ? providerText.transcriptHide : providerText.transcriptShow;
@@ -3456,6 +3482,44 @@ body {
             // The transcript always prints in full, so "Show/Hide …" is the wrong heading on paper.
             win.addEventListener('beforeprint', () => { label.textContent = providerText.transcriptTitle; });
             win.addEventListener('afterprint', syncLabel);
+        }
+
+        // "Download PDF" in the summary window: renders the summary to a PDF with
+        // html2pdf, downloads it, then shows that same file in the tab. Falls back
+        // to the print dialog if the library didn't load or rendering fails.
+        async function downloadSummaryPdf(win, btn, label) {
+            const d = win.document;
+            if (!win.html2pdf) { win.print(); return; }
+            btn.disabled = true;
+            label.textContent = providerText.transcriptTitle;   // as on beforeprint
+            // Reuse the .print-summary print layout (transcript expanded, no buttons)
+            // by switching its @media print block on for the render.
+            const printRule = [...d.styleSheets].flatMap(s => [...s.cssRules])
+                .find(r => r.media && r.media.mediaText === 'print' && r.cssText.includes('.print-summary'));
+            if (printRule) printRule.media.mediaText = 'all';
+            try {
+                const filename = d.title + '.pdf';
+                const blob = await win.html2pdf().set({
+                    margin: 10,
+                    filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'mm', format: 'letter' },
+                    pagebreak: { avoid: '.transcript-turn' },
+                }).from(d.getElementById('summaryModal')).outputPdf('blob');
+                const url = win.URL.createObjectURL(blob);
+                const a = d.createElement('a');
+                a.href = url;
+                a.download = filename;
+                d.body.appendChild(a);
+                a.click();
+                win.setTimeout(() => win.location.replace(url), 500);   // let the download start first
+            } catch (err) {
+                console.error('PDF export failed, falling back to print:', err);
+                if (printRule) printRule.media.mediaText = 'print';
+                btn.disabled = false;
+                win.print();
+            }
         }
 
         // state: 'loading' | 'ready' | 'error'
