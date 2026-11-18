@@ -3629,7 +3629,6 @@ body {
         async function handleQuestionClick(question) {
             if (isProcessing) return;
 
-            hideSuggestionPills(); // Hide pills immediately when user sends a custom question
             addUserMessage(question);
             // Persist user message immediately so events and messages stay in sync
             // even if the session expires before the assistant response arrives.
@@ -3753,7 +3752,6 @@ body {
         async function callChatOpenAI(userQuestion) {
             if (isProcessing) return;
             isProcessing = true;
-            hideSuggestionPills(); // Hide suggestion pills while fetching
             addEvent("Chat API Call Sent", userQuestion);
 
             // Show typing indicator while the first token is on its way
